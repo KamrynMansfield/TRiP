@@ -1,0 +1,37 @@
+Package: TRiP
+Title: TRiP Tool
+Version: 0.0.0.9000
+Authors@R: 
+    person("Kamryn", "Mansfield", , "kmansfi4@vols.utk.edu", role = c("aut", "cre"))
+Description: A shiny app to forecast bus ridership
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 8.1.0
+Imports: 
+    bslib,
+    dplyr,
+    DT,
+    fixest,
+    ggplot2,
+    gridlayout,
+    gt,
+    leaflet,
+    lubridate,
+    lwgeom,
+    modelsummary,
+    pak,
+    patchwork,
+    purrr,
+    readxl,
+    scales,
+    sf,
+    shiny,
+    shinyjs,
+    tidycensus,
+    tidytransit,
+    tigris,
+    units,
+    viridis,
+    writexl,
+    zoo
