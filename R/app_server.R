@@ -6,6 +6,7 @@
 #'
 #' @keywords internal
 app_server <- function(input, output, session){
+
   #### 1. SCREENING ####
 
   screening_result <- reactive({
@@ -764,7 +765,7 @@ app_server <- function(input, output, session){
 
     create_regression_model(data_xlsx = xl_data,
                             acs_data = acs,
-                            gas_csv = "data/Midwest_All_Grades_All_Formulations_Retail_Gasoline_Prices.csv",
+                            gas_data = gas,
                             variables = vars,
                             fare_df = fare_tbl) # TODO: this doesn't seem to be working
   })
@@ -913,7 +914,7 @@ app_server <- function(input, output, session){
 
                  mod <- create_regression_model_forced(data_xlsx = processed_data(),
                                                        acs_data = acs_data(),
-                                                       gas_csv = "data/Midwest_All_Grades_All_Formulations_Retail_Gasoline_Prices.csv",
+                                                       gas_data = gas,
                                                        variables = input$variables_forced,
                                                        fare_df = fare_tbl())
                  model_forced(mod)
@@ -1522,7 +1523,7 @@ app_server <- function(input, output, session){
         df_unfiltered <- forecast_ridership(coefs = coefs,
                                             data_xlsx = processed_data,
                                             acs_data = acs,
-                                            gas_csv = "data/Midwest_All_Grades_All_Formulations_Retail_Gasoline_Prices.csv",
+                                            gas_data = gas,
                                             scenario_inputs_df = scenario_df,
                                             start_year = NULL,
                                             start_month = NULL) #,
@@ -1660,6 +1661,5 @@ app_server <- function(input, output, session){
     }
   )
 
-}
   invisible(NULL)
 }

@@ -7,7 +7,7 @@
 #'
 #' @keywords internal
 app_ui <- function() {
-  shiny::page_navbar(
+  bslib::page_navbar(
     id = "main_nav",
     title = "TRiP App",
     selected = "pan_1",
@@ -147,7 +147,7 @@ app_ui <- function() {
             h5("Input Data Example"),
 
             # tableOutput(outputId = "example_input"),
-            tags$img(src = "dataexample.png",),
+            tags$img(src = "www/dataexample.png",),
             "The uploaded data must match the format shown above",
             "The column names must match exactly.",
             "If you have routes classified as Bus Rapid Transit, you may optionally add a brt column.",
