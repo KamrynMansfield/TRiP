@@ -13,7 +13,6 @@ Imports:
     DT,
     fixest,
     ggplot2,
-    gridlayout,
     gt,
     leaflet,
     lubridate,
@@ -35,7 +34,7 @@ Imports:
     viridis,
     writexl,
     zoo
-URL: https://github.com/KamrynMansfield/TRiP
+URL: https://github.com/KamrynMansfield/TRiP, https://kamrynmansfield.github.io/TRiP/
 BugReports: https://github.com/KamrynMansfield/TRiP/issues
 Depends: 
     R (>= 3.5)
