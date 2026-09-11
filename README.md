@@ -1,4 +1,6 @@
 
+# TRiP <a href="https://kamrynmansfield.github.io/TRiP/"><img src="man/figures/logo.png" align="right" height="136" alt="TRiP website" /></a>
+
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 # TRiP
@@ -6,6 +8,11 @@
 <!-- badges: start -->
 
 <!-- badges: end -->
+
+## Introduction
+
+This is where you will find documentation to the R code behind the
+**T**ransit **Ri**dership **P**rediction (TRiP) Tool.
 
 The goal of the TRiP is to help small- to medium- sized transit agencies
 to predict their future ridership.

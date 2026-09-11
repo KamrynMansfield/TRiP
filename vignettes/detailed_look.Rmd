@@ -1,0 +1,24 @@
+---
+title: "detailed_look"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{detailed_look}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+# Detailed Look Behind the App
+
+## Introduction
+
+The following page is where I will give a detailed description of how the code works. 
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(TRiP)
+```
