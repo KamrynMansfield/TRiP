@@ -2,4 +2,5 @@
 
 ### All vignettes
 
-- [detailed_look](https://kamrynmansfield.github.io/TRiP/articles/detailed_look.md):
+- [Detailed
+  Look](https://kamrynmansfield.github.io/TRiP/articles/detailed_look.md):
