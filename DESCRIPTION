@@ -2,8 +2,8 @@ Package: TRiP
 Title: TRiP Tool
 Version: 0.0.0.9000
 Authors@R: c(
-    person("Kamryn", "Mansfield", email = "kmansfi4@vols.utk.edu", role = c("ctb","aut"), comment = c(ORCID = "0009-0003-5466-0821")),
     person("Candace", "Brakewood", email = "cvoulgaris@gsd.harvard.edu", role = c("aut", "cre","ctb"), comment = c(ORCID = "0000-0003-2769-7808")),
+    person("Kamryn", "Mansfield", email = "kmansfi4@vols.utk.edu", role = c("ctb","aut"), comment = c(ORCID = "0009-0003-5466-0821")),
     person("Mtthew", "Davis", role = c("ctb","aut"))
     )
 Description: A shiny app to forecast bus ridership
