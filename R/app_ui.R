@@ -1,18 +1,52 @@
+# app_ui.R ----------------------------------------------------------------
+# The complete user interface, built with bslib's page_navbar(). The app is a
+# linear eight-step workflow; each nav_panel() below is one step, and the user
+# is advanced through them programmatically by nav_select() calls in
+# app_server() rather than by clicking the tabs directly.
+#
+#   1. Screening              - is this tool appropriate for the agency?
+#   2. Ridership Data Upload  - .xlsx of monthly UPT and VRM, plus fare history
+#   3. GTFS Upload            - route geometry, then pull Census data
+#   4. Model Creation         - compare the default stepwise model to a custom one
+#   5. Model Review           - sanity-check coefficients, set BRT and fare plans
+#   6. Forecasting Inputs     - per-route Low / Mid / High scenario assumptions
+#   7. Visualization          - forecast charts, download plots
+#   8. Export                 - download the raw forecast data
+#
+# Every input and output ID here has a matching handler in app_server.R.
+
 #' Application User Interface
 #'
 #' Builds the top-level UI. Not intended to be called directly; use
 #' [run_app()] instead.
 #'
+#' The panel IDs are `"pan_1"` through `"pan_8"`, matching the eight workflow
+#' steps listed in the file header. `app_server()` moves the user between them
+#' with `bslib::nav_select("main_nav", "pan_n")` once each step's prerequisites
+#' are satisfied.
+#'
+#' Several regions are rendered as `uiOutput()` placeholders rather than static
+#' inputs, so that they only appear once the previous step has succeeded. These
+#' include `screening_button_placeholder`, `rider_data_next_placeholder`,
+#' `api_key_placeholder`, `api_button_placeholder`, `acs_button_placeholder`,
+#' `forced_coef_placeholder`, `brt_date`, and `brt_routes`.
+#'
 #' @return A [shiny::tagList()] containing the full UI definition.
+#'
+#' @seealso [app_server()] for the corresponding server logic.
 #'
 #' @keywords internal
 app_ui <- function() {
+  # page_navbar() gives each step its own tab. id = "main_nav" is the handle
+  # app_server() uses to drive navigation; selected = "pan_1" opens on Screening.
   bslib::page_navbar(
     id = "main_nav",
     title = "TRiP App",
     selected = "pan_1",
     theme = bslib::bs_theme(),
 
+    # Custom CSS for the amber warning box on the Screening tab. The classes
+    # defined here are applied in the renderUI() for output$textWarn1.
     tags$head(
       tags$style(HTML("\
       .screening-warning { border: 1px solid #e5b94f; border-radius: 6px; overflow: hidden; }\
@@ -22,6 +56,12 @@ app_ui <- function() {
     "))
     ),
 
+    # STEP 1 -----------------------------------------------------------------
+    # Three yes/no questions that flag conditions the model handles poorly: a
+    # recent network redesign (history no longer describes current service), a
+    # single dominant ridership generator, and recent rail investment. Answering
+    # yes does not block the user; the continue button just changes to
+    # "Continue Anyways".
     ##### 1. screening #####
     nav_panel(
       value = "pan_1",
@@ -74,6 +114,11 @@ app_ui <- function() {
         )
       )
     ),
+    # STEP 2 -----------------------------------------------------------------
+    # Left card explains the required .xlsx format; right card previews the parsed
+    # upload and collects adult base fare change history. The fare table is only
+    # shown when has_fare_changes == "yes" (conditionalPanel, evaluated in the
+    # browser). Validation of the upload happens server-side.
     ##### 2. rider data #####
     nav_panel(
       value = "pan_2",
@@ -98,10 +143,13 @@ app_ui <- function() {
             div(
               style = "height: 375px; overflow-y: auto; width: 100%; max-width: 100%; overflow-x: auto; border: 1px solid #cccccc; border-radius: 4px; padding: 10px;",
               strong("Imported File Preview"),
+              # preview of the parsed upload, so the user can confirm it read correctly
               DTOutput(outputId = "input_data", width = "98%")
             ),
             "Just one more questions before creating your model for forecasting.",
             radioButtons(
+              # gates the fare-change entry form below; fare history feeds log_fare
+              # in make_model_data_frame()
               inputId = "has_fare_changes",
               label = "Have you changed your adult base fare in the past 5 years?",
               choices = c("No" = "no", "Yes" = "yes"),
@@ -140,6 +188,7 @@ app_ui <- function() {
             "Upload a properly formatted excel file with monthly weekday Unlinked Passenger Trips (UPT) and Vehicle Revenue Miles (VRM) for each route.",
             "(seen example below for data format) \n",
             "Due to unusual ridership patterns during the COVID19 pandemic, it is recommended that your data not go back past the year 2023.",
+            # .xlsx only; parsed and validated by the processed_data() reactive
             fileInput("upload_data", "",
                       accept = ".xlsx",
                       width = "100%"),
@@ -147,6 +196,8 @@ app_ui <- function() {
             h5("Input Data Example"),
 
             # tableOutput(outputId = "example_input"),
+            # static screenshot of the expected format, served from inst/app/www
+            # via the resource path registered in .onLoad()
             tags$img(src = "www/dataexample.png",),
             "The uploaded data must match the format shown above",
             "The column names must match exactly.",
@@ -160,6 +211,10 @@ app_ui <- function() {
       )
     ),
 
+    # STEP 3 -----------------------------------------------------------------
+    # GTFS upload plus the map that lets the user confirm the routes and counties
+    # look right. The Census API key input and the "Get Census Data" button are
+    # rendered as placeholders so they only appear after a valid feed is parsed.
     ##### 3. gtfs #####
     nav_panel(
       value = "pan_3",
@@ -187,6 +242,7 @@ app_ui <- function() {
           card_header("Route Data Upload"),
           card_body(
             "Upload your agency's GTFS zip file",
+            # GTFS zip; route_id values here must match those in the ridership file
             fileInput("upload_routes","GTFS Upload", accept = ".zip"),
             textOutput(outputId = "acs_description"),
             uiOutput(outputId = "api_key_placeholder"),
@@ -196,6 +252,11 @@ app_ui <- function() {
         )
       )
     ),
+    # STEP 4 -----------------------------------------------------------------
+    # Three columns: instructions and variable glossary on the left, the default
+    # stepwise model in the middle, the user's custom model on the right. Each
+    # model card has its own "Continue With This Model" button, which is how
+    # selected_model() gets set.
     ##### 4. Create Model #####
     nav_panel(
       value = "pan_4",
@@ -309,6 +370,8 @@ app_ui <- function() {
               # style = "background-color: #f0f0f0;",
               area = "create_mod",
               card_body(
+                # choices are populated server-side once the ACS data is available, and
+                # pre-selected with whatever the default stepwise model retained
                 selectizeInput(inputId = "variables_forced",
                                label = "Varaible Selection",
                                choices = NULL,
@@ -344,6 +407,12 @@ app_ui <- function() {
         )
       )
     ),
+    # STEP 5 -----------------------------------------------------------------
+    # Left: the coefficient table from check_coefficients(), colored for
+    # implausible signs. Middle: forward-looking questions about BRT conversions
+    # and fare increases, with a date/route entry table shown conditionally.
+    # Right: optional checkboxes to override estimated coefficients with published
+    # literature elasticities.
     ##### 5. Review Model #####
     nav_panel(
       value = "pan_5",
@@ -376,6 +445,8 @@ app_ui <- function() {
           card_body(
             strong("Pre-forecasting questions"),
             radioButtons(
+              # answering yes reveals the BRT date/route entry table and adds the BRT
+              # option to the forced-coefficient checkboxes
               inputId = "brt_question",
               label = "In the next year, do you plan to convert any of your routes to BRT?",
               choices = list("No" = "no","Yes" = "yes"),
@@ -428,6 +499,7 @@ app_ui <- function() {
             uiOutput(outputId = "forced_coef_placeholder"),
             "If you have reviewed the coefficients, added any forced coefficients you wanted, and decided this is the model you want to use, click the button below.",
             actionButton(
+              # locks in final_coefs() and builds the scenario table on the next tab
               inputId = "proceed_to_forecast",
               label = "Proceed to Forecasting",
               class = "btn-primary"
@@ -438,6 +510,12 @@ app_ui <- function() {
         )
       )
     ),
+    # STEP 6 -----------------------------------------------------------------
+    # Scenario entry. The editable table on the lower left holds Low/Mid/High
+    # annual percent changes for each model variable; the route selector and Save
+    # button assign that set of assumptions to one route, to all unsaved routes, or
+    # over routes already saved. Saved assumptions accumulate in the table on the
+    # right, and "Run Forecasts" triggers forecast_ridership().
     ##### 6. Forecasting #####
     nav_panel(
       value = "pan_6",
@@ -493,6 +571,8 @@ app_ui <- function() {
           card_body(
             # DTOutput(outputId = "dtScenarios", width = "100%"),
             radioButtons(
+              # controls whether Save applies to not-yet-saved routes or overwrites
+              # routes that already have assumptions stored
               "route_mode",
               "Apply scenario to:",
               choices = c("New routes (not yet saved)" = "new",
@@ -511,6 +591,7 @@ app_ui <- function() {
         grid_card(
           area = "area1",
           card_body(
+            # runs the forecast; input_task_button disables itself while busy
             input_task_button("buttonRun","Run Forecasts"),
             "The assumed forecasts for each route will be displayed below.
           Check your estimate values once more before proceeding ",
@@ -521,6 +602,9 @@ app_ui <- function() {
         )
       )
     ),
+    # STEP 7 -----------------------------------------------------------------
+    # Forecast chart for the selected route, plus a bulk download that zips one PNG
+    # per route via get_files_to_zip().
     ##### 7. Visualize #####
     nav_panel(
       value = "pan_7",
@@ -544,6 +628,7 @@ app_ui <- function() {
           card_body(
             style = "display: flex; flex-direction: column; height: 100%;",
             selectInput(
+              # populated from the forecast results after Run Forecasts completes
               inputId = "input_route_to_plot",
               label = "Choose a route to plot",
               choices = "Waiting for forecast..."
@@ -558,6 +643,9 @@ app_ui <- function() {
         )
       )
     ),
+    # STEP 8 -----------------------------------------------------------------
+    # Preview of the raw forecast data with CSV and Excel download buttons, and a
+    # data dictionary describing each exported column.
     ##### 8. Export #####
     nav_panel(
       value = "pan_8",

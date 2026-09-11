@@ -1,23 +1,38 @@
+# get_crs.R ---------------------------------------------------------------
+# Picks a projected CRS for the route geometry so that buffering and area
+# calculations in create_intersecting_tract_percentages() happen in meters
+# rather than degrees.
+
 #' Find EPSG code for State Plane CRS
 #'
 #' `get_crs()` uses state plane geometry to find an appropriate NAD83
 #' crs for the input geometry. This is a copy from the `zr_get_crs()` function in
 #' the zoneR package on [github](https://github.com/vibe-lab-gsd/zoneR/blob/main/R/zr_get_crs.R)
 #'
+#' In TRiP this is called by [create_intersecting_tract_percentages()] before
+#' the quarter-mile route buffer is drawn, because buffering by a distance in
+#' meters requires a projected coordinate system.
+#'
 #' @details
 #' The state plane data was compiled using [ArcGIS Hub](https://hub.arcgis.com/datasets/esri::usa-state-plane-zones-nad83/explore)
-#' and the [epsg.io](https://epsg.io/) website.
+#' and the [epsg.io](https://epsg.io/) website, and ships with the package as the
+#' internal `state_planes_crs` object.
 #'
 #' @param geom_data Either a simple feature collection or a
 #' path to a file containing geospatial data
 #' @param large_area Set this to `TRUE` if your data may
 #' cross multiple state planes. It will be a bit longer but
-#' find the state plane that covers it the best
+#' find the state plane that covers it the best. When `FALSE` (the default)
+#' only the first non-empty feature is tested, which is much faster.
 #'
 #' @returns Returns the appropriate epsg code as an integer
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' route_geom <- get_gtfs_routes("gtfs.zip")
+#' get_crs(route_geom)
+#' }
 #'
 get_crs <- function(geom_data, large_area = FALSE){
 
@@ -35,6 +50,7 @@ get_crs <- function(geom_data, large_area = FALSE){
   }
 
   if (large_area == FALSE){
+    # fast path: drop empty geometries and test only the first feature
     geom <- geom |>
       dplyr::filter(!sf::st_is_empty(geometry))
 
@@ -45,6 +61,7 @@ get_crs <- function(geom_data, large_area = FALSE){
     )
   }
 
+  # which state plane zone(s) does the geometry fall in?
   intersections <- sf::st_intersects(sf::st_make_valid(geom), state_planes_crs)
 
   # list each intersecting idx and
@@ -52,6 +69,7 @@ get_crs <- function(geom_data, large_area = FALSE){
   tbl <- table(unlist(intersections))
 
   # get the idx that was intersected the most
+  # (i.e. the zone covering the largest share of the features tested)
   sp_idx <- as.numeric(names(tbl)[which.max(tbl)])
 
   # use sp_idx, to get the correct crs code

@@ -1,14 +1,45 @@
+# app_server.R ------------------------------------------------------------
+# All server-side logic for the eight-step workflow defined in app_ui.R.
+#
+# Data flow through the reactive graph, top to bottom:
+#
+#   input$upload_data   -> processed_data()  -> check_names()/check_numeric()/
+#                                               check_log() -> data_check()
+#   input$upload_routes -> route_sf()        -> county_sf()
+#   input$get_acs       -> acs_data()        (tracts -> buffers -> ACS -> monthly)
+#   processed_data() +
+#   acs_data()          -> first_model()     (stepwise, tab 4 middle column)
+#                       -> model_forced()    (user-selected, tab 4 right column)
+#                       -> selected_model()  -> final_coefs()
+#   saved$by_route +
+#   final_coefs()       -> forecast_df()     -> plots, zip, csv/xlsx exports
+#
+# A few conventions used throughout:
+#   * Validation failures surface as showModal() dialogs rather than errors.
+#   * Navigation between tabs is driven by bslib::nav_select(), never by the
+#     user clicking a tab, which keeps the workflow strictly sequential.
+#   * Several outputs are rendered inside observeEvent() blocks so that buttons
+#     only exist once their prerequisites are met.
+
 #' Application Server Logic
+#'
+#' Implements every reactive, observer, and output for the TRiP app. Not called
+#' directly; [run_app()] passes it to [shiny::shinyApp()].
 #'
 #' @param input,output,session Internal Shiny parameters.
 #'
 #' @return Called for side effects. Returns `NULL` invisibly.
+#'
+#' @seealso [app_ui()] for the interface these handlers are bound to.
 #'
 #' @keywords internal
 app_server <- function(input, output, session){
 
   #### 1. SCREENING ####
 
+  # Evaluates the three screening questions and returns both a flag and the
+  # text of any warnings triggered. Kept as a reactive so that both the warning
+  # panel and the continue button can read the same result.
   screening_result <- reactive({
     warnings <- c(
       redesign = "Because your agency has implemented a system redesign within the last three years,
@@ -31,6 +62,9 @@ app_server <- function(input, output, session){
     list(has_warnings = length(selected_warnings) > 0, warnings = unname(selected_warnings))
   })
 
+  # Renders either a green all-clear or an amber list of caveats.
+  # bindEvent() on the button means the message only updates when the user
+  # explicitly asks to check compatibility, not as they toggle radio buttons.
   output$textWarn1 <- renderUI({
     result <- screening_result()
 
@@ -53,6 +87,9 @@ app_server <- function(input, output, session){
   }) |>
     bindEvent(input$compatibility_button, ignoreInit = TRUE)
 
+  # The continue button is generated rather than static so its label and color
+  # can reflect the screening outcome. Either way it advances the user; the
+  # screening is advisory, not a hard gate.
   output$screening_button_placeholder <- renderUI({
     if (screening_result()$has_warnings) {
       bslib::input_task_button(
@@ -70,6 +107,7 @@ app_server <- function(input, output, session){
   }) |>
     bindEvent(input$compatibility_button, ignoreInit = TRUE)
 
+  # advance to the Ridership Data Upload tab
   observeEvent(input$screening_button, {
     bslib::nav_select("main_nav", "pan_2")
   })
@@ -102,6 +140,10 @@ app_server <- function(input, output, session){
   #### 2. RIDERSHIP DATA UPLOAD ####
 
   # Read and modify the uploaded data
+  # Parses the uploaded .xlsx. Route IDs are coerced to numeric when they
+  # convert cleanly, purely so routes sort in a sensible order (2 before 10)
+  # rather than alphabetically. Non-numeric IDs are left as-is.
+  # Anything other than .xlsx is rejected with a modal.
   processed_data <- reactive({
     req(input$upload_data) # Ensure a file is uploaded
     path <- input$upload_data$datapath
@@ -145,6 +187,7 @@ app_server <- function(input, output, session){
   })
 
   # checking to make sure the data is formatted correctly
+  # Validation 1: are all five required columns present and spelled correctly?
   check_names <- reactive({
     req(processed_data())
     df <- processed_data()
@@ -157,6 +200,11 @@ app_server <- function(input, output, session){
 
   })
 
+  # Validation 2: can every column except route_id be coerced to numeric?
+  # tryCatch traps the coercion warning that as.numeric() raises on text, which
+  # is what makes a bad column detectable.
+  # NOTE: names(df) != c("route_id") compares a vector to a length-1 vector and
+  # relies on recycling; it works here but `!= "route_id"` is the safer form.
   check_numeric <- reactive({
     req(processed_data())
     df <- processed_data()
@@ -182,6 +230,9 @@ app_server <- function(input, output, session){
     sum(check_numeric_long[-1]) == length(check_numeric_long[-1])
   })
 
+  # Validation 3: reject columns whose names suggest they are already logged.
+  # make_model_data_frame() logs every extra column it finds, so a pre-logged
+  # column would be logged twice.
   check_log <- reactive({
     req(processed_data())
     df <- processed_data()
@@ -194,6 +245,7 @@ app_server <- function(input, output, session){
 
   })
 
+  # All three validations combined; gates the Census data pull.
   data_check <- reactive({
     req(check_names())
     req(check_numeric())
@@ -202,6 +254,12 @@ app_server <- function(input, output, session){
   })
 
 
+  # Dispatches a specific error modal for each combination of failed checks,
+  # and renders either the continue button or a nudge to re-upload.
+  # Worth knowing: the branches test combinations in a fixed order, and the
+  # three-way branch requires all three checks to fail simultaneously, so some
+  # combinations fall through to a message that only describes part of the
+  # problem. That is likely the behavior behind the TODO below.
   # TODO: This doesn't seem to be working properly.
   # send a message if the data is not formatted correctly
   observe({
@@ -316,6 +374,10 @@ app_server <- function(input, output, session){
   }) |>
     bindEvent(input$rider_data_next)
 
+  # Any column beyond the five required ones is treated as a user-supplied
+  # predictor. Returns a named vector mapping the original column name to its
+  # logged counterpart, which is spliced into the variable lookups used by the
+  # model tables, check_coefficients(), and the scenario table.
   addnl_vars <- reactive({
     req(processed_data())
     df <- processed_data()
@@ -336,6 +398,10 @@ app_server <- function(input, output, session){
   ##### Copied AI code for fare change table #####
 
 
+  # --- Fare change table (tab 2) -------------------------------------------
+  # A small editable CRUD table: add rows with the date/prev/new inputs, edit
+  # cells inline, delete selected rows. Stored in a reactiveVal so edits persist
+  # across re-renders.
   # Current agency working table (no agency column yet; add on save)
   current <- reactiveVal(
     data.frame(
@@ -346,6 +412,7 @@ app_server <- function(input, output, session){
     )
   )
 
+  # append a fare change row, keeping the table sorted by date
   observeEvent(input$add, {
     req(input$new_date)
     req(!is.na(input$new_prev), !is.na(input$new_new))
@@ -365,6 +432,7 @@ app_server <- function(input, output, session){
   })
 
   # Render current table (editable)
+  # dom = "t" shows just the table body, no search or paging chrome
   output$tbl <- renderDT({
     datatable(
       current(),
@@ -379,6 +447,8 @@ app_server <- function(input, output, session){
   })
 
   # Apply cell edits from DT to current()
+  # DT reports edits with 0-based column indexes, hence col + 1.
+  # Values that fail to coerce are ignored rather than written back as NA.
   observeEvent(input$tbl_cell_edit, {
     info <- input$tbl_cell_edit
     df <- current()
@@ -407,6 +477,7 @@ app_server <- function(input, output, session){
   })
 
   # Delete selected rows
+  # drop whichever rows the user has selected
   observeEvent(input$delete, {
     sel <- input$tbl_rows_selected
     if (length(sel) == 0) return()
@@ -415,6 +486,8 @@ app_server <- function(input, output, session){
     current(df)
   })
 
+  # switching the question back to "no" clears any rows already entered, so a
+  # stale fare history can't silently feed the model
   observeEvent(input$has_fare_changes, {
     if (input$has_fare_changes == "no") {
       # clear your current fare-change table
@@ -426,6 +499,8 @@ app_server <- function(input, output, session){
     }
   })
 
+  # Normalizes the fare table for downstream use: an empty table becomes NULL,
+  # which is what make_model_data_frame() expects when there is no fare history.
   fare_tbl <- reactive({
     req(current())
 
@@ -451,6 +526,7 @@ app_server <- function(input, output, session){
 
 
   # Show a preview of the input that was just uploaded
+  # five-row preview of the upload, read-only
   output$input_data <- renderDT({
     req(processed_data())
     processed_data() |>
@@ -466,6 +542,9 @@ app_server <- function(input, output, session){
   #### 3. GTFS UPLOAD ####
 
   # getting routes sf from gtfs
+  # Parses the GTFS zip into one geometry per route. Returns the string
+  # "error" (not a condition) when tidytransit can't read the feed, so callers
+  # test with inherits(route_sf(), "character") before using it.
   route_sf <- reactive({
     req(input$upload_routes) # Ensure a file is uploaded
     routes <- input$upload_routes$datapath
@@ -505,12 +584,17 @@ app_server <- function(input, output, session){
     bindEvent(input$upload_routes)
 
   # getting the counties it touches
+  # Counties the routes pass through. Drives both the map's background layer
+  # and the state/county FIPS codes sent to tigris and tidycensus.
   county_sf <- reactive({
     req(!inherits(route_sf(), "character"))
     find_overlapping_counties(route_sf())
   })
 
   # once someone uploads the gtfs,
+  # On a successful upload, draw the map and reveal the API key input and the
+  # Census pull button. These are rendered here rather than defined statically
+  # so they can't be clicked before a valid feed exists.
   observeEvent(input$upload_routes, {
     req(!inherits(route_sf(), "character"))
 
@@ -561,12 +645,18 @@ app_server <- function(input, output, session){
     bindEvent(input$upload_routes)
 
 
+  # --- Census retrieval -----------------------------------------------------
+  # The longest-running step in the app. Validates the API key, checks that the
+  # ridership and GTFS route IDs agree, then runs the full geography pipeline
+  # inside a progress bar.
   ##### GET AND PREPARE CENSUS DATA #####
 
   acs_data <- reactiveVal(NULL)
 
   key_rv <- reactiveVal(NULL)
 
+  # Validates the key with one cheap, known-good query before accepting it, so
+  # a typo is caught here rather than midway through the expensive pull.
   observeEvent(input$submit_key, {
     k <- trimws(input$api_key)
     req(nzchar(k))
@@ -611,6 +701,8 @@ app_server <- function(input, output, session){
     }
 
 
+    # The spreadsheet and the GTFS feed must name routes identically, otherwise
+    # the ACS data could never be joined to ridership. Block if they disagree.
     excel_routes <- unique(processed_data()$route_id)
     gtfs_routes <- unique(route_sf()$route_id)
 
@@ -661,6 +753,13 @@ app_server <- function(input, output, session){
     }
 
 
+    # The geography pipeline, in order:
+    #   get_tract_geometry()  -> tract boundaries per year
+    #   create_intersecting_tract_percentages() -> buffer overlap weights
+    #   pull_acs_data()       -> raw ACS variables per tract
+    #   combine_acs_data()    -> one column per readable variable
+    #   create_final_acs_data() -> route-level monthly series
+    # Each step that can fail shows a modal and halts via req().
     res <- withProgress(message = "Organizing Census Data...",
                         detail = "this could take a minute or two", value = 0, {
 
@@ -728,6 +827,7 @@ app_server <- function(input, output, session){
                           acs_data
                         })
 
+    # cache the finished ACS data and move the user on to Model Creation
     acs_data(res)  # store result so outputs can use it
 
     bslib::nav_select("main_nav", "pan_4")
@@ -736,6 +836,10 @@ app_server <- function(input, output, session){
 
   #### 4. MODEL CREATION ####
   # get first model after user inputs the files
+  # The default model: every available variable is offered to
+  # create_regression_model(), which prunes back to a 10% significance
+  # threshold. The named vector below is the full candidate set, with display
+  # labels as names.
   first_model <- reactive({ # first model
     req(input$upload_data$datapath)
     req(acs_data())
@@ -770,6 +874,9 @@ app_server <- function(input, output, session){
                             fare_df = fare_tbl) # TODO: this doesn't seem to be working
   })
 
+  # Renders the default model's coefficient table: raw names swapped for
+  # readable labels, stars appended by significance, and rows shaded green to
+  # yellow by p-value. The numeric pval helper column is hidden at the end.
   output$tbl_mod_stepwise <- render_gt({
     created_model <- first_model() # first model
 
@@ -851,9 +958,15 @@ app_server <- function(input, output, session){
   })
 
   # Create the proxy handle for the output table
+  # Proxy handle created for in-place table updates. Not currently used; the
+  # table is re-rendered rather than patched.
   proxy <- dataTableProxy("tbl_mod_stepwise")
 
   # once acs is uploaded, then it will update the selections for the model creation on the next page
+  # Once ACS data exists, populate the variable picker on tab 4 with every
+  # candidate variable, pre-selecting the ones the default model kept. Month
+  # dummies and the squared year term are collapsed back to their formula form
+  # ("factor(month)", "year_cent^2") so the selection round-trips correctly.
   observeEvent(acs_data(),
                {
                  req(acs_data())
@@ -900,12 +1013,18 @@ app_server <- function(input, output, session){
                })
 
   # value to make sure the model has been run
+  # Left over from an earlier two-model flow; model_forced() is now the source
+  # of truth for whether a custom model exists.
   model_ran <- reactiveVal(FALSE)
 
   model_forced <- reactiveVal(NULL)
 
 
 
+  # Fits the user's hand-picked specification with no stepwise elimination.
+  # NOTE: gas_data = gas is passed here, but create_regression_model_forced()
+  # declares that parameter as gas_csv, so this call will error with
+  # "unused argument" until the two names agree.
   observeEvent(input$run_model_forced,
                ignoreNULL = TRUE,
                {
@@ -922,6 +1041,8 @@ app_server <- function(input, output, session){
 
 
   # show the coefficients that were generated from regression model function
+  # Same coefficient table treatment as the default model, for side-by-side
+  # comparison on tab 4.
   output$tbl_mod_forced <- render_gt({
     req(model_forced())
 
@@ -1001,8 +1122,10 @@ app_server <- function(input, output, session){
       cols_hide(columns = pval)
   })
 
+  # Whichever model the user commits to; everything downstream reads this.
   selected_model <- reactiveVal(NULL)
 
+  # "Continue With This Model" under the default model
   observeEvent(input$use_this_model_button, {
     req(first_model())
 
@@ -1019,6 +1142,7 @@ app_server <- function(input, output, session){
     bslib::nav_select("main_nav", "pan_5")
   })
 
+  # "Continue With This Model" under the alternative model
   observeEvent(input$use_this_model_button_forced, {
     fm <- isolate(model_forced())
     req(fm)
@@ -1028,6 +1152,8 @@ app_server <- function(input, output, session){
 
 
   #### 5. REVIEW MODEL ####
+  # Coefficient sanity check, colored red for impossible signs and yellow for
+  # questionable ones.
   output$coefficients_review <- render_gt({
     req(!is.null(selected_model()))
     check_coefficients(selected_model(),addnl_vars())
@@ -1038,6 +1164,8 @@ app_server <- function(input, output, session){
 
 
   # add inputs for a brt change
+  # Builds the BRT entry inputs on demand. The route choices come from the
+  # uploaded ridership data so the user can only pick routes that exist.
   observeEvent(input$brt_question, {
 
     if (input$brt_question == "yes"){
@@ -1093,6 +1221,10 @@ app_server <- function(input, output, session){
   ### COPIED AI RESPONSE FOR BRT STUFF ###
 
   # Current agency working table
+  # --- BRT conversion table (tab 5) ----------------------------------------
+  # Same add/edit/delete pattern as the fare table. Multiple routes sharing one
+  # conversion date are stored as a single comma-separated string and split back
+  # out in brt_tbl() below.
   current_brt <- reactiveVal(
     data.frame(
       change_date_brt = as.Date(character()),
@@ -1175,6 +1307,8 @@ app_server <- function(input, output, session){
 
 
 
+  # Expands the comma-separated route strings into one row per route-date pair,
+  # which is the shape forecast_ridership() expects. Returns NULL when empty.
   brt_tbl <- reactive({
     req(current_brt())
 
@@ -1198,6 +1332,9 @@ app_server <- function(input, output, session){
 
 
 
+  # Builds the list of literature elasticities the user may substitute for
+  # their own estimates. VRM is always offered; gas, fares, and BRT appear only
+  # when relevant to the chosen model or the user's stated plans.
   foreced_coef_choices <- reactive({
     req(input$brt_question)
     req(input$fare_question)
@@ -1236,6 +1373,11 @@ app_server <- function(input, output, session){
 
 
   # getting a vector with the final coefficients that will be used in the model
+  # Merges the model's estimated coefficients with any literature values the
+  # user chose to force. The `map` vector translates between the checkbox IDs
+  # ("vrm", "gas") and the model's variable names ("log_vrm", "log_gas_price"),
+  # then the estimated versions of the overridden variables are dropped and the
+  # forced values appended in their place.
   final_coefs <- reactive({
     req(selected_model())
 
@@ -1271,6 +1413,7 @@ app_server <- function(input, output, session){
 
   #### 6 FORECAST AND VIZUALIZATION ####
 
+  # every route present in the uploaded ridership data
   routes <- reactive({
     req(input$upload_data$datapath)
     ridership_df <- processed_data()
@@ -1278,6 +1421,7 @@ app_server <- function(input, output, session){
     unique(ridership_df$route_id)
   })
 
+  # the editable Low/Mid/High scenario table currently on screen
   v <- reactiveValues(data = NULL)
 
   # NEW: store saved scenarios (all routes)
@@ -1304,6 +1448,8 @@ app_server <- function(input, output, session){
 
   # Use an observer to get the model they choose to use
   # and create a data frame for the forecasting inputs
+  # Seeds the scenario table with one row per model variable and placeholder
+  # assumptions of -1% / 2% / 5%, then moves to the Forecasting Inputs tab.
   observeEvent(input$proceed_to_forecast, {
     req(final_coefs())
     elasticities <- get_elasticity_varaibles(final_coefs(), addnl_vars())
@@ -1322,6 +1468,8 @@ app_server <- function(input, output, session){
     bslib::nav_select("main_nav", "pan_6")
   })
 
+  # The route dropdown's contents depend on the mode: unsaved routes (plus an
+  # "all remaining" shortcut) when adding, already-saved routes when overwriting.
   # NEW: keep the route dropdown updated based on mode and what's already saved
   observe({
     req(input$route_mode)
@@ -1349,6 +1497,7 @@ app_server <- function(input, output, session){
   })
 
   # 2. Render the table with editable = TRUE
+  # The editable scenario grid. Users type values like "5%" directly into cells.
   output$dtScenarios <- renderDT({
     req(v$data)
     datatable(v$data, editable = 'cell', selection = 'none',
@@ -1364,6 +1513,8 @@ app_server <- function(input, output, session){
   proxy_scenarios <- dataTableProxy('dtScenarios')
 
   # 4. Observe the 'cell_edit' event
+  # Writes an edited cell back into v$data and refreshes the table through the
+  # proxy, avoiding a full re-render that would lose scroll position.
   observeEvent(input$dtScenarios_cell_edit, {
     info <- input$dtScenarios_cell_edit
 
@@ -1380,6 +1531,8 @@ app_server <- function(input, output, session){
 
 
   # NEW: helper that performs the save (overwrites only targeted routes)
+  # Stamps the current scenario grid onto each target route and merges it into
+  # the saved store, replacing any existing rows for those routes.
   save_routes <- function(routes_to_save) {
     base <- data.frame(
       Variable = rownames(v$data),
@@ -1398,6 +1551,8 @@ app_server <- function(input, output, session){
   }
 
   # NEW: Save button handler (with confirmation when overwriting)
+  # Save handler. Overwriting existing routes requires an explicit confirmation
+  # modal; saving to new routes happens immediately.
   observeEvent(input$save_route_scenario, {
     req(v$data, input$route_selected, input$route_mode)
 
@@ -1444,6 +1599,7 @@ app_server <- function(input, output, session){
   })
 
   # view saved scenarios
+  # running list of every route that now has saved assumptions
   output$dtSavedScenarios <- renderDT({
     req(saved$by_route)
     datatable(saved$by_route, options = list(pageLength = 25),
@@ -1454,6 +1610,14 @@ app_server <- function(input, output, session){
 
   #### RUNNING FORECASTS ####
 
+  # The forecast run. Routes that share identical Low/Mid/High assumptions are
+  # grouped and forecast together (one call per distinct assumption set rather
+  # than one per route), then the results are filtered back down to the routes
+  # in each group and stacked.
+  #
+  # Note the guard near the bottom: the forecast only runs when every route has
+  # saved assumptions, otherwise final_df is NULL and the downstream outputs
+  # stay empty.
   forecast_df <- eventReactive(input$buttonRun, {
 
     req(final_coefs())
@@ -1493,6 +1657,8 @@ app_server <- function(input, output, session){
 
     processed_data <- processed_data()
 
+    # Collapse each route's assumptions into a single string per scenario, then
+    # assign a shared group ID to routes whose strings all match.
     grouped_routes <- saved_predictions |>
       group_by(Route) |>
       summarize(low = paste(Low.Estimate, collapse = ", "),
@@ -1539,12 +1705,16 @@ app_server <- function(input, output, session){
 
 
 
+      # Advances to the Visualization tab. Note this observer is created inside a
+      # reactive, so a new one is registered on every run; moving it to the top
+      # level of the server function would avoid accumulating observers.
       observeEvent(input$buttonRun, {
         bslib::nav_select("main_nav", "pan_7")
       })
 
       final_df <- bind_rows(forecast_dfs)
 
+      # system-wide totals, recomputed after the per-group forecasts are stacked
       df_all_routes <- final_df |>
         summarize(route_id = "all_routes",
                   avg_daily_upt = sum(avg_daily_upt, na.rm = T),
@@ -1566,6 +1736,7 @@ app_server <- function(input, output, session){
 
   ## PLOT TO WORK WITH FORECASTS ##
 
+  # default system-total chart, also used as a readiness signal by viz_plot
   forcast_preview <- eventReactive(input$buttonRun, {
     req(forecast_df())
     plot_forecast(forecast_df())
@@ -1590,6 +1761,7 @@ app_server <- function(input, output, session){
     )
   }, ignoreInit = TRUE)
 
+  # redraws whenever the user picks a different route from the dropdown
   output$viz_plot <- renderPlot({
     req(forecast_df())
     req(forcast_preview())
@@ -1604,6 +1776,8 @@ app_server <- function(input, output, session){
     bindEvent(input$go_to_export)
 
   # Handle the ZIP download
+  # Writes one PNG per route to a temp directory and zips them. The "-j" flag
+  # flattens the archive so it contains files rather than nested temp folders.
   output$download_plots <- downloadHandler(
     filename = function() {
       paste0("ridership_plots_", Sys.Date(), ".zip")
@@ -1627,12 +1801,15 @@ app_server <- function(input, output, session){
 
   #### 8. FINAL DOWNLOAD PAGE ####
 
+  # the exact column set exported to CSV and Excel, documented on tab 8
   output_df <- reactive({
     forecast_df() |>
       select(route_id, year, month, avg_daily_upt, tot_weekday_upt, forecast, scenario, date)
   })
 
   # Show a preview of the output that is about to be downloaded
+  # rounded preview of the export; rounding is display-only and does not
+  # affect the downloaded files
   output$outputExample <- renderDT({
     req(forecast_df())
     output_df <- output_df()
