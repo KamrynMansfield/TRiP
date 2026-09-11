@@ -1,0 +1,27 @@
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>https://kamrynmansfield.github.io/TRiP/404.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/LICENSE-text.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/LICENSE.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/authors.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/index.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/app_server.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/app_ui.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/check_coefficients.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/combine_acs_data.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/create_final_acs_data.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/create_intersecting_tract_percentages.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/create_regression_model.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/find_overlapping_counties.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/forecast_ridership.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/get_crs.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/get_gtfs_routes.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/get_tract_geometry.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/hello.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/index.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/make_model_data_frame.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/plot_forecast.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/plot_forecast_facet.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/pull_acs_data.html</loc></url>
+<url><loc>https://kamrynmansfield.github.io/TRiP/reference/run_app.html</loc></url>
+</urlset>
+
