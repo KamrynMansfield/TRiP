@@ -88,8 +88,6 @@ files, so they display on GitHub and CRAN.
   : Get transit route geometry
 - [`get_tract_geometry()`](https://kamrynmansfield.github.io/TRiP/reference/get_tract_geometry.md)
   : Get census tract geometry for given counties
-- [`hello()`](https://kamrynmansfield.github.io/TRiP/reference/hello.md)
-  : Hello, World!
 - [`make_model_data_frame()`](https://kamrynmansfield.github.io/TRiP/reference/make_model_data_frame.md)
   : list variables to be log transformed three variables not log
   transformed: "workers_16_over", "median_earnings", "emp_pop_ratio"
