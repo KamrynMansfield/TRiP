@@ -1,5 +1,12 @@
 # TRiP
 
+# TRiP
+
+## Introduction
+
+This is where you will find documentation to the R code behind the
+**T**ransit **Ri**dership **P**rediction (TRiP) Tool.
+
 The goal of the TRiP is to help small- to medium- sized transit agencies
 to predict their future ridership.
 
