@@ -51,14 +51,14 @@
 #' @noRd
 create_regression_model_forced <- function(data_xlsx,
                                            acs_data,
-                                           gas_csv,
+                                           gas_data,
                                            variables,
                                            fare_df = NULL,
                                            brt_df = NULL){
 
   # assemble and log-transform the joined ridership / ACS / gas data
   # (see the note above: this passes five arguments to a four-argument function)
-  df_all_log <- make_model_data_frame(data_xlsx, acs_data, gas_csv, fare_df, brt_df)
+  df_all_log <- make_model_data_frame(data_xlsx, acs_data, gas_data, fare_df)
 
   # changing the reference monthe to December (just for now)
   # TODO: Delet this eventually

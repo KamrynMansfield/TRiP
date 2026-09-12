@@ -104,7 +104,7 @@ forecast_ridership <- function(coefs,
 
   # rebuild the same modeling data frame the coefficients were estimated on,
   # so the reference ridership is on the identical scale
-  df_all_log <- make_model_data_frame(data_xlsx, acs_data, gas_csv, fare_df, brt_df)
+  df_all_log <- make_model_data_frame(data_xlsx, acs_data, gas_csv, fare_df)
 
   min_year <- min(df_all_log$year) # must match the centering used at estimation
 
