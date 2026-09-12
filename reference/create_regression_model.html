@@ -88,9 +88,36 @@ Default is NULL.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>Results of the regression model. An R oject of class "fixest"</p>
+    <p>Results of the regression model. An R object of class "fixest",
+containing only the variables that survived the elimination loop.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>The fitted specification is
+<code>log_upt_avg ~ &lt;candidate variables&gt; | route_id</code>, with standard errors
+clustered by route. Absorbing <code>route_id</code> means every route gets its own
+intercept, so the coefficients describe within-route variation over time
+rather than differences between routes. Because both sides are logged, the
+coefficients are elasticities, which is what <code><a href="forecast_ridership.html">forecast_ridership()</a></code> relies on.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code>create_regression_model_forced()</code> for the version that fits exactly
+the variables the user selects, with no elimination.</p></div>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu">create_regression_model</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  data_xlsx <span class="op">=</span> <span class="va">processed_data</span>,</span></span>
+<span class="r-in"><span>  acs_data  <span class="op">=</span> <span class="va">acs</span>,</span></span>
+<span class="r-in"><span>  gas_data  <span class="op">=</span> <span class="va">gas</span>,</span></span>
+<span class="r-in"><span>  variables <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"log_vrm"</span>, <span class="st">"factor(month)"</span>, <span class="st">"year_cent"</span>, <span class="st">"log_gas_price"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

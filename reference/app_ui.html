@@ -51,6 +51,22 @@ run_app() instead."><meta property="og:image" content="https://kamrynmansfield.g
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code><a href="https://rstudio.github.io/htmltools/reference/tagList.html" class="external-link">shiny::tagList()</a></code> containing the full UI definition.</p>
     </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>The panel IDs are <code>"pan_1"</code> through <code>"pan_8"</code>, matching the eight workflow
+steps listed in the file header. <code><a href="app_server.html">app_server()</a></code> moves the user between them
+with <code>bslib::nav_select("main_nav", "pan_n")</code> once each step's prerequisites
+are satisfied.</p>
+<p>Several regions are rendered as <code>uiOutput()</code> placeholders rather than static
+inputs, so that they only appear once the previous step has succeeded. These
+include <code>screening_button_placeholder</code>, <code>rider_data_next_placeholder</code>,
+<code>api_key_placeholder</code>, <code>api_button_placeholder</code>, <code>acs_button_placeholder</code>,
+<code>forced_coef_placeholder</code>, <code>brt_date</code>, and <code>brt_routes</code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="app_server.html">app_server()</a></code> for the corresponding server logic.</p></div>
+    </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

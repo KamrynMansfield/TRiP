@@ -49,4 +49,34 @@ create_regression_model(
 
 ## Value
 
-Results of the regression model. An R oject of class "fixest"
+Results of the regression model. An R object of class "fixest",
+containing only the variables that survived the elimination loop.
+
+## Details
+
+The fitted specification is
+`log_upt_avg ~ <candidate variables> | route_id`, with standard errors
+clustered by route. Absorbing `route_id` means every route gets its own
+intercept, so the coefficients describe within-route variation over time
+rather than differences between routes. Because both sides are logged,
+the coefficients are elasticities, which is what
+[`forecast_ridership()`](https://kamrynmansfield.github.io/TRiP/reference/forecast_ridership.md)
+relies on.
+
+## See also
+
+`create_regression_model_forced()` for the version that fits exactly the
+variables the user selects, with no elimination.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+mod <- create_regression_model(
+  data_xlsx = processed_data,
+  acs_data  = acs,
+  gas_data  = gas,
+  variables = c("log_vrm", "factor(month)", "year_cent", "log_gas_price")
+)
+} # }
+```
