@@ -14,8 +14,26 @@ get_tract_geometry(state_fips, county_fips, years)
 \item{years}{A year or list of years}
 }
 \value{
-An sf object of the requested tract boundaries that have been validated using \code{st_make_valid}
+An sf object of the requested tract boundaries that have been
+validated using \code{st_make_valid}, with an added \code{year} column. Returns
+\code{NULL} if any requested year failed to download or came back empty.
 }
 \description{
-This function uses the tirgis package to retrieve the census tract boundaries.
+This function uses the tigris package to retrieve the census tract boundaries
+for every requested year and stacks them into a single \code{sf} object with a
+\code{year} column. Because tract boundaries are redrawn between vintages, each
+year must be fetched separately and later joined to ACS data of the same year.
+}
+\details{
+Any failure (no internet, a Census.gov outage, an unreleased vintage, or an
+empty result) causes the function to return \code{NULL} rather than partial data.
+\code{app_server()} checks for that \code{NULL} and shows the user a modal explaining
+the likely causes.
+}
+\examples{
+\dontrun{
+state_fips  <- unique(county_sf$STATEFP)
+county_fips <- unique(county_sf$COUNTYFP)
+tract_geom  <- get_tract_geometry(state_fips, county_fips, 2020:2024)
+}
 }

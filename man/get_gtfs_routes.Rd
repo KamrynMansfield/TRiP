@@ -7,11 +7,24 @@
 get_gtfs_routes(gtfs_zip_file)
 }
 \arguments{
-\item{gtfs_zip_file}{The gtfs zip file}
+\item{gtfs_zip_file}{Path to the agency's GTFS zip file.}
 }
 \value{
-The route geometry from the file
+An \code{sf} data frame with one row per route, containing a \code{route_id}
+column and the unioned line geometry for that route, in EPSG:4326.
+The \code{route_id} values must match the \code{route_id} values in the uploaded
+ridership spreadsheet; \code{app_server()} checks this and blocks the user if
+they disagree.
 }
 \description{
-Get transit route geometry
+Reads a GTFS feed and collapses it into a single line feature per route.
+GTFS stores geometry in \code{shapes.txt} keyed by \code{shape_id}, and a route
+typically has many shape IDs (one per pattern and direction), so this
+function joins shapes to routes through \code{trips.txt} and then unions all the
+shapes belonging to each route.
+}
+\examples{
+\dontrun{
+route_geom <- get_gtfs_routes("knoxville_gtfs.zip")
+}
 }

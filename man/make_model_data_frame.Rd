@@ -2,12 +2,48 @@
 % Please edit documentation in R/make_model_data_frame.R
 \name{make_model_data_frame}
 \alias{make_model_data_frame}
-\title{list variables to be log transformed
-three variables not log transformed: "workers_16_over", "median_earnings", "emp_pop_ratio"}
+\title{Build the modeling data frame}
 \usage{
 make_model_data_frame(data_xlsx, acs_data, gas_data, fare_df = NULL)
 }
-\description{
-list variables to be log transformed
-three variables not log transformed: "workers_16_over", "median_earnings", "emp_pop_ratio"
+\arguments{
+\item{data_xlsx}{The agency's uploaded ridership data as a data frame. Must
+contain \code{route_id}, \code{month}, \code{year}, \code{upt}, and \code{vrm}; may optionally
+contain \code{brt} and any number of extra numeric columns, which are picked up
+automatically and log-transformed.}
+
+\item{acs_data}{Route-level monthly ACS data, as returned by
+\code{\link[=create_final_acs_data]{create_final_acs_data()}}. Must contain \code{route_id}, \code{date}, and the ACS
+variable columns.}
+
+\item{gas_data}{Monthly gas price data with \code{month}, \code{year}, and \code{gas_price}
+columns. The app passes the internal \code{gas} object, sourced from the
+\href{https://www.eia.gov/dnav/pet/pet_pri_gnd_dcus_nus_m.htm}{U.S. Energy Information Administration}.}
+
+\item{fare_df}{Optional data frame describing adult base fare changes, with
+\code{change_date}, \code{prev_fare}, and \code{new_fare} columns (built by the fare table
+on tab 2). If \code{NULL}, fare is held at a constant 1 so that \code{log_fare} is 0
+and the variable drops out of the model.}
 }
+\value{
+A data frame with one row per route-month, containing the log-
+transformed model variables (\code{log_upt_avg}, \code{log_vrm}, \code{log_gas_price},
+the \verb{log_perc_*} ACS variables, \code{log_fare}), the untransformed helpers
+(\code{year}, \code{month} as a factor, \code{year_cent}, \code{weekdays_in_month}, \code{time}),
+and a \code{brt} logical column.
+}
+\description{
+Joins agency ridership data to route-level ACS data and gas prices, converts
+monthly UPT into an average-weekday figure, adds the time-trend and
+seasonality terms, applies an adult base fare series, and log-transforms
+every continuous variable so the estimated coefficients can be read as
+elasticities.
+}
+\section{Variables deliberately left untransformed}{
+
+\code{workers_16_over}, \code{median_earnings}, and \code{emp_pop_ratio} are not logged.
+\code{year}, \code{year_cent}, \code{month}, and \code{brt} are also left as-is because they
+enter the model as a trend, a factor, and an indicator respectively.
+}
+
+\keyword{internal}

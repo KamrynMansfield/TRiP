@@ -12,7 +12,8 @@ path to a file containing geospatial data}
 
 \item{large_area}{Set this to \code{TRUE} if your data may
 cross multiple state planes. It will be a bit longer but
-find the state plane that covers it the best}
+find the state plane that covers it the best. When \code{FALSE} (the default)
+only the first non-empty feature is tested, which is much faster.}
 }
 \value{
 Returns the appropriate epsg code as an integer
@@ -23,6 +24,18 @@ crs for the input geometry. This is a copy from the \code{zr_get_crs()} function
 the zoneR package on \href{https://github.com/vibe-lab-gsd/zoneR/blob/main/R/zr_get_crs.R}{github}
 }
 \details{
+In TRiP this is called by \code{\link[=create_intersecting_tract_percentages]{create_intersecting_tract_percentages()}} before
+the quarter-mile route buffer is drawn, because buffering by a distance in
+meters requires a projected coordinate system.
+
 The state plane data was compiled using \href{https://hub.arcgis.com/datasets/esri::usa-state-plane-zones-nad83/explore}{ArcGIS Hub}
-and the \href{https://epsg.io/}{epsg.io} website.
+and the \href{https://epsg.io/}{epsg.io} website, and ships with the package as the
+internal \code{state_planes_crs} object.
+}
+\examples{
+\dontrun{
+route_geom <- get_gtfs_routes("gtfs.zip")
+get_crs(route_geom)
+}
+
 }

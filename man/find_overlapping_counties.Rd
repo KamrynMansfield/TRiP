@@ -7,12 +7,27 @@
 find_overlapping_counties(route_geom)
 }
 \arguments{
-\item{route_geom}{The route geometry that was created with \code{get_gtfs_routes()}}
+\item{route_geom}{The route geometry that was created with \code{get_gtfs_routes()}.
+Expected to be an \code{sf} object in EPSG:4326 (WGS 84).}
 }
 \value{
-A data frame with the following columns, "STATEFP", "COUNTYFP", "NAME"
+An \code{sf} data frame of the intersecting counties, including the
+columns "STATEFP", "COUNTYFP", and "NAME".
 }
 \description{
+Intersects the agency's route geometry against the internal \code{us_counties}
+data set and returns every county the routes touch. The resulting state and
+county FIPS codes are what \code{\link[=get_tract_geometry]{get_tract_geometry()}} and \code{\link[=pull_acs_data]{pull_acs_data()}} use
+to limit their Census queries, and the county polygons are also drawn as a
+grey background layer in \code{\link[=make_route_leaflet]{make_route_leaflet()}}.
+}
+\details{
 This uses the county shape data found at
 \href{https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.html}{census.gov}
+}
+\examples{
+\dontrun{
+route_geom <- get_gtfs_routes("gtfs.zip")
+county_sf  <- find_overlapping_counties(route_geom)
+}
 }

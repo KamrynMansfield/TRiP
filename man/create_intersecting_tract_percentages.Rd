@@ -8,16 +8,40 @@ create_intersecting_tract_percentages(tract_geom, route_geom)
 }
 \arguments{
 \item{tract_geom}{the geometry of the census tracts that
-was output from the \code{get_tract_geometry} function.}
+was output from the \code{get_tract_geometry} function. Must include a \code{year}
+column; the overlay is repeated once per year because tract boundaries change
+between vintages.}
 
 \item{route_geom}{the route geometry that was output
 from the \code{get_gtfs_routes} function.}
 }
 \value{
-a data frame with geometries of all the intersections created
-when crossing the tract boundaries with the route buffer. It
-also includes columns for the percentage of the tract it takes up
+An \code{sf} data frame (EPSG:4326) with one row per route-tract-year
+overlap, holding the geometry of the overlap plus:
+\describe{
+\item{GEOID}{The census tract identifier.}
+\item{route_id}{The route whose buffer produced the overlap.}
+\item{buffer_area}{Total area of that route's buffer.}
+\item{intersect_area}{Area of this particular route-tract overlap.}
+\item{percent_of_buffer}{\code{intersect_area / buffer_area}, the weight used downstream.}
+\item{year}{The tract vintage the overlap was computed against.}
+}
 }
 \description{
-Find tracts that intersect the route buffer
+Draws a quarter-mile (402.336 m) buffer around each route, overlays it with
+the census tracts for each year, and computes what share of the route's
+buffer falls in each tract. Those shares are the weights used later to
+aggregate tract demographics up to the route level.
+}
+\details{
+The route geometry is simplified and reprojected to a local state plane CRS
+first, so the buffer distance and areas are computed in meters on a planar
+surface rather than in degrees on a sphere.
+}
+\examples{
+\dontrun{
+tract_buffer_data <- create_intersecting_tract_percentages(
+  census_tract_geom, route_geom
+)
+}
 }

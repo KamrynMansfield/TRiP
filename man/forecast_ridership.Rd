@@ -2,8 +2,7 @@
 % Please edit documentation in R/forecast_ridership.R
 \name{forecast_ridership}
 \alias{forecast_ridership}
-\title{add scenarios to forecast_grid
-and get elasticity factors}
+\title{Forecast route-level ridership under Low, Medium, and High scenarios}
 \usage{
 forecast_ridership(
   coefs,
@@ -17,7 +16,65 @@ forecast_ridership(
   brt_df = NULL
 )
 }
-\description{
-add scenarios to forecast_grid
-and get elasticity factors
+\arguments{
+\item{coefs}{A named numeric vector of model coefficients, typically the
+output of the \code{final_coefs()} reactive (model coefficients with any
+user-forced literature values substituted in).}
+
+\item{data_xlsx}{The agency's uploaded ridership data as a data frame.}
+
+\item{acs_data}{Route-level monthly ACS data from \code{\link[=create_final_acs_data]{create_final_acs_data()}}.}
+
+\item{gas_csv}{Monthly gas price data with \code{month}, \code{year}, and \code{gas_price}
+columns. Despite the name this is a data frame, not a file path.}
+
+\item{scenario_inputs_df}{The saved scenario table, with \code{Variable},
+\code{Low.Estimate}, \code{Mid.Estimate}, and \code{High.Estimate} columns. Passed to
+\code{\link[=organize_scenario_df]{organize_scenario_df()}}.}
+
+\item{start_year}{Year to anchor the forecast to. If \code{NULL} (the default) the
+most recent year in the data is used.}
+
+\item{start_month}{Month to anchor the forecast to. If \code{NULL} (the default)
+the last observed month of \code{start_year} is used.}
+
+\item{fare_df}{Optional data frame of adult base fare changes.}
+
+\item{brt_df}{Optional data frame of planned BRT conversions, with
+\code{change_date_brt} and \code{routes_brt} columns, as built by the BRT table on
+tab 5.}
 }
+\value{
+A data frame combining observed history and forecast, with columns
+\code{route_id}, \code{year}, \code{month}, \code{avg_daily_upt}, \code{tot_weekday_upt},
+\code{forecast} (logical), \code{scenario}, and \code{date}. Includes a synthetic
+\code{"all_routes"} route that sums every route, and duplicates the reference
+month across all three scenarios so the forecast lines connect cleanly to
+the observed line when plotted.
+}
+\description{
+Projects average weekday ridership forward through December of the year
+following the reference month, for every route and all three scenarios. The
+forecast is built by growing an observed reference month by a product of
+factors: one per elasticity variable, one for the linear time trend, one for
+the quadratic trend, one for monthly seasonality, and one for any BRT
+conversion.
+}
+\section{Argument mismatches worth checking}{
+
+Same two issues flagged in \code{\link[=create_regression_model_forced]{create_regression_model_forced()}}:
+\code{app_server()} calls this with \code{gas_data = gas} while the formal here is
+\code{gas_csv} (an "unused argument" error), and the call to
+\code{make_model_data_frame()} below passes five arguments to a four-argument
+function by adding \code{brt_df}. Flagged rather than fixed.
+}
+
+\section{BRT coefficient naming}{
+
+The BRT coefficient is looked up as \code{"brt"} here, but because \code{brt} is a
+logical column the model reports it as \code{"brtTRUE"} (which is the name
+\code{\link[=check_coefficients]{check_coefficients()}} uses). If the BRT factor ever comes back as exactly 1
+when it shouldn't, this naming mismatch is the first place to look.
+}
+
+\keyword{internal}

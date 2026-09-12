@@ -7,17 +7,24 @@
 run_app(...)
 }
 \arguments{
-\item{...}{Arguments passed to \code{\link[shiny:shinyApp]{shiny::shinyApp()}}, such as \code{options}.}
+\item{...}{Arguments passed to \code{\link[shiny:shinyApp]{shiny::shinyApp()}}, such as \code{options}
+(for example \code{options = list(launch.browser = TRUE, port = 8080)}).}
 }
 \value{
 A Shiny app object. Called for its side effect of launching the app.
 }
 \description{
-Launches the application in the user's default browser.
+Launches the TRiP forecasting application in the user's default browser.
+The app walks a transit agency through eight tabs: screening, ridership data
+upload, GTFS upload, model creation, model review, forecasting inputs,
+visualization, and export.
 }
 \examples{
 \dontrun{
 run_app()
 }
 
+}
+\seealso{
+\code{\link[=app_ui]{app_ui()}} and \code{\link[=app_server]{app_server()}} for the UI and server definitions.
 }

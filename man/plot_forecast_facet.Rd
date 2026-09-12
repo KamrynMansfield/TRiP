@@ -13,6 +13,21 @@ the forecast_ridership() function}
 \item{scale}{either "average" or "total" to specify whether you want the y axis to have
 average weekday UPT or total weekday UPT for the month.}
 }
+\value{
+A \code{ggplot} object with one facet per \code{route_id}.
+}
 \description{
-Plot forecasted UPT for all routes in a facet wrap
+Same chart as \code{\link[=plot_forecast]{plot_forecast()}} but faceted, with one small panel per route.
+Each panel gets free y and x scales, since ridership levels differ by orders
+of magnitude between a trunk route and a coverage route and a shared scale
+would flatten the smaller ones.
+}
+\examples{
+\dontrun{
+plot_forecast_facet(forecast_df)
+plot_forecast_facet(forecast_df, scale = "total")
+}
+}
+\seealso{
+\code{\link[=plot_forecast]{plot_forecast()}} for the single-route version used in the app.
 }

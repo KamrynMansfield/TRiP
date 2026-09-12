@@ -2,18 +2,42 @@
 % Please edit documentation in R/pull_acs_data.R
 \name{pull_acs_data}
 \alias{pull_acs_data}
-\title{Use to county data frame to get needed acs tables}
+\title{Use the county data frame to get needed acs tables}
 \usage{
 pull_acs_data(county_sf, years = 2024)
 }
 \arguments{
 \item{county_sf}{the county sf object that was output by \code{find_overlapping_counties()}}
 
-\item{years}{the years that you want the tables for}
+\item{years}{the years that you want the tables for. Defaults to 2024.}
 }
 \value{
-a nested list with acs data for each year and each table we want (tables: "B08006","B08201", "DP05","S0802","S2301")
+A named list with one element per year holding a long-format
+\code{tidycensus} data frame (with geometry), plus a final \code{errors} element
+listing any years that failed to download. \code{app_server()} checks for a
+non-empty \code{errors} element and warns the user rather than proceeding.
 }
 \description{
-Use to county data frame to get needed acs tables
+Downloads the fixed set of ACS 5-year variables the TRiP model relies on, at
+the census tract level, for every county the routes pass through. One API
+call is made per year so that each year can be matched to the tract vintage
+of the same year.
+}
+\details{
+Requires a Census API key to be registered (the app collects one on tab 3 and
+installs it with \code{tidycensus::census_api_key()} before calling this).
+
+The variables pulled come from five tables:
+\describe{
+\item{B08006}{Means of transportation to work (total workers, WFH, taxi, car, transit, bike, walk)}
+\item{B08201}{Household size by vehicles available (total households, households with no vehicle)}
+\item{DP05}{Demographic profile (total population)}
+\item{S0802}{Commuting characteristics (poverty ratios, median earnings, share female, share renter-occupied)}
+\item{S2301}{Employment status (labor force participation, employment/population ratio, unemployment)}
+}
+}
+\examples{
+\dontrun{
+acs_data_list <- pull_acs_data(county_sf, 2020:2024)
+}
 }

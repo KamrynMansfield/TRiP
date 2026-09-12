@@ -21,8 +21,38 @@ create_final_acs_data(
 \item{end_month}{the year and month (as a string separated by "-") that the final output will end with. Example: "2025-12"}
 }
 \value{
-a data frame with the needed variables to go into the regression model
+A data frame with one row per route per month between \code{start_month}
+and \code{end_month}, a \code{date} column, and one column per ACS variable. This is
+the \code{acs_data} argument expected by \code{\link[=create_regression_model]{create_regression_model()}},
+\code{\link[=create_regression_model_forced]{create_regression_model_forced()}}, and \code{\link[=forecast_ridership]{forecast_ridership()}}.
 }
 \description{
-Prepare acs data for regression model
+Aggregates tract-level ACS estimates up to the route level using the buffer
+overlap weights from \code{\link[=create_intersecting_tract_percentages]{create_intersecting_tract_percentages()}}, then converts
+the annual series into a continuous monthly series between \code{start_month} and
+\code{end_month}. Annual observations are anchored to December of their year;
+months in between are linearly interpolated, and months beyond the last ACS
+year are linearly extrapolated using the most recent year-over-year change.
+}
+\details{
+Work-from-home (\code{perc_wfh}) is treated specially: rather than interpolating
+it smoothly it is carried forward as a step function, because the sharp
+pandemic-era shift in telecommuting is better represented as a level change
+than as a gradual trend.
+}
+\section{Warning}{
+
+If the tract geometry covers more years than the ACS data does, the tract
+data is filtered down to the ACS years and a warning is emitted.
+}
+
+\examples{
+\dontrun{
+acs_final <- create_final_acs_data(
+  combined_acs_data   = organized_acs,
+  intersecting_tracts = tract_buffer_data,
+  start_month         = "2021-01",
+  end_month           = "2025-12"
+)
+}
 }

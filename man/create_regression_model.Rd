@@ -27,11 +27,34 @@ from \href{https://www.eia.gov/dnav/pet/pet_pri_gnd_dcus_nus_m.htm}{U.S. Energy 
 Default is NULL.}
 }
 \value{
-Results of the regression model. An R oject of class "fixest"
+Results of the regression model. An R object of class "fixest",
+containing only the variables that survived the elimination loop.
 }
 \description{
 This is a main function of the TRiP tool. It uses agency-level ridership data and external
 census data to create a fixed effects regression model that can help
 predict bus ridership. This function uses a backwards stepwise method
 to create a model with only coefficients that have a p-value less than 0.1.
+}
+\details{
+The fitted specification is
+\verb{log_upt_avg ~ <candidate variables> | route_id}, with standard errors
+clustered by route. Absorbing \code{route_id} means every route gets its own
+intercept, so the coefficients describe within-route variation over time
+rather than differences between routes. Because both sides are logged, the
+coefficients are elasticities, which is what \code{\link[=forecast_ridership]{forecast_ridership()}} relies on.
+}
+\examples{
+\dontrun{
+mod <- create_regression_model(
+  data_xlsx = processed_data,
+  acs_data  = acs,
+  gas_data  = gas,
+  variables = c("log_vrm", "factor(month)", "year_cent", "log_gas_price")
+)
+}
+}
+\seealso{
+\code{\link[=create_regression_model_forced]{create_regression_model_forced()}} for the version that fits exactly
+the variables the user selects, with no elimination.
 }

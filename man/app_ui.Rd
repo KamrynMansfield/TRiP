@@ -13,4 +13,19 @@ A \code{\link[shiny:tagList]{shiny::tagList()}} containing the full UI definitio
 Builds the top-level UI. Not intended to be called directly; use
 \code{\link[=run_app]{run_app()}} instead.
 }
+\details{
+The panel IDs are \code{"pan_1"} through \code{"pan_8"}, matching the eight workflow
+steps listed in the file header. \code{app_server()} moves the user between them
+with \code{bslib::nav_select("main_nav", "pan_n")} once each step's prerequisites
+are satisfied.
+
+Several regions are rendered as \code{uiOutput()} placeholders rather than static
+inputs, so that they only appear once the previous step has succeeded. These
+include \code{screening_button_placeholder}, \code{rider_data_next_placeholder},
+\code{api_key_placeholder}, \code{api_button_placeholder}, \code{acs_button_placeholder},
+\code{forced_coef_placeholder}, \code{brt_date}, and \code{brt_routes}.
+}
+\seealso{
+\code{\link[=app_server]{app_server()}} for the corresponding server logic.
+}
 \keyword{internal}

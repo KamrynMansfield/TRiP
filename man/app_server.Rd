@@ -13,6 +13,10 @@ app_server(input, output, session)
 Called for side effects. Returns \code{NULL} invisibly.
 }
 \description{
-Application Server Logic
+Implements every reactive, observer, and output for the TRiP app. Not called
+directly; \code{\link[=run_app]{run_app()}} passes it to \code{\link[shiny:shinyApp]{shiny::shinyApp()}}.
+}
+\seealso{
+\code{\link[=app_ui]{app_ui()}} for the interface these handlers are bound to.
 }
 \keyword{internal}

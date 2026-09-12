@@ -7,11 +7,25 @@
 combine_acs_data(pulled_acs_list)
 }
 \arguments{
-\item{pulled_acs_list}{The nested list created by \code{pull_acs_data()}}
+\item{pulled_acs_list}{The nested list created by \code{pull_acs_data()}. Should
+contain only successful year elements; check that the \code{errors} element is
+absent before calling this.}
 }
 \value{
-A combined list of ACS variables with a column for each variable
+An \code{sf} data frame with one row per tract per year and one column
+per ACS variable, including the derived \code{perc_car}, \code{perc_taxicab},
+\code{perc_wfh}, and \code{perc_hshlds_noveh} columns. The raw count columns used to
+build those percentages are dropped.
 }
 \description{
-Organize Pulled ACS Data
+Takes the per-year list returned by \code{\link[=pull_acs_data]{pull_acs_data()}}, stacks it into a
+single long data frame, renames the cryptic ACS variable IDs to readable
+names, pivots to one column per variable, and converts the raw commute and
+vehicle counts into percentages of the relevant denominator.
+}
+\examples{
+\dontrun{
+acs_data_list <- pull_acs_data(county_sf, 2020:2024)
+combined_acs  <- combine_acs_data(acs_data_list)
+}
 }
