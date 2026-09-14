@@ -20,15 +20,18 @@ knitr::opts_chunk$set(
 
 This is where you will find documentation to the R code behind the **T**ransit **Ri**dership **P**rediction (TRiP) Tool. 
 
+
 ## Introduction
 
 The goal of the TRiP Tool is to help small- to medium- sized transit agencies to predict their future ridership. 
 
+## Accessing the App
 
+[Download the PDF Users Manual](pdf/manual.pdf)
 
-## Access
+[Open Current TRiP Tool](https://019f7142-d057-c4b5-68a3-3421b30aab9e.share.connect.posit.cloud/)
 
-Click [here](https://019f7142-d057-c4b5-68a3-3421b30aab9e.share.connect.posit.cloud/) to access the Current TRiP Tool
+## Access the App's Code
 
 Click [here](https://github.com/KamrynMansfield/TRiP) to access the github repository for the TRiP Tool Shiny App.
 
@@ -39,32 +42,15 @@ The R code below will install the development version of the TRiP R package from
 pak::pak("KamrynMansfield/TRiP")
 ```
 
+## File Structure
 
+Explain where to find the shiny app UI and Server codes. 
 
+Explain how each R function is it's only script inside the R folder.
 
+Go to the reference tab to view documentation for each function. 
 
+## Shiny App 
 
-## Example
+Details of the coding behind the app.
 
-This is a basic example which shows you how to solve a common problem:
-
-```{r example}
-library(TRiP)
-## basic example code
-```
-
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
-
-```{r cars}
-summary(cars)
-```
-
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
-
-You can also embed plots, for example:
-
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
-
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.

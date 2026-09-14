@@ -15,6 +15,14 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
-library(TRiP)
-```
+
+## Pulling Census Data
+
+## Creating the Model
+
+## Forecasting Ridership
+
+## Adding Fares to the Model
+
+## Adding BRT to the Model
+
