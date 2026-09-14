@@ -3,7 +3,12 @@
 The following page is where I will give a detailed description of how
 the code works.
 
-``` r
+## Pulling Census Data
 
-library(TRiP)
-```
+## Creating the Model
+
+## Forecasting Ridership
+
+## Adding Fares to the Model
+
+## Adding BRT to the Model
