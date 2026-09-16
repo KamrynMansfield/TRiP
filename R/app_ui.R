@@ -591,9 +591,17 @@ app_ui <- function() {
         grid_card(
           area = "area1",
           card_body(
+            # users can select whether they want a 5-year or a 1-year forecast
+            selectInput(
+              "select_1_or_5",
+              list("1-year forecast" = "one", "5-year forecast" = "five"),
+              selected = "one"
+            ),
             # runs the forecast; input_task_button disables itself while busy
-            input_task_button("buttonRun","Run Forecasts"),
-            "The assumed forecasts for each route will be displayed below.
+            input_task_button("buttonRun","Forecast Ridership"),
+            # TODO: add another botton next to this. Have the buttons
+            #       say "Run 1-year Forecast" and "Run 5-year Forecast"
+            "The assumed scenarios for each route will be displayed below.
           Check your estimate values once more before proceeding ",
             # plotOutput(outputId = "forcast_plot"),
             # Optional: show saved results

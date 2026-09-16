@@ -69,6 +69,8 @@
 #' @param brt_df Optional data frame of planned BRT conversions, with
 #'   `change_date_brt` and `routes_brt` columns, as built by the BRT table on
 #'   tab 5.
+#' @param five_year Option ability to forecast for the next 5 years instead of
+#' the next year. When `FALSE` (the default), it will only run a 1-year forecast.
 #'
 #' @returns A data frame combining observed history and forecast, with columns
 #'   `route_id`, `year`, `month`, `avg_daily_upt`, `tot_weekday_upt`,
@@ -100,7 +102,10 @@ forecast_ridership <- function(coefs,
                               start_year = NULL,
                               start_month = NULL,
                               fare_df = NULL,
-                              brt_df = NULL){
+                              brt_df = NULL,
+                              five_year = FALSE){
+
+  #TODO: make it able to output a 5-year forecast.
 
   # rebuild the same modeling data frame the coefficients were estimated on,
   # so the reference ridership is on the identical scale
@@ -178,46 +183,52 @@ forecast_ridership <- function(coefs,
     mutate(month_change = change / 12)
 
 
-  # Create forecast grid until December of the next year
-  # one row per route x month x scenario, dropping months already observed
-  forecast_grid <- expand_grid(
-    route_id = unique(route_reference$route_id),
-    year = c(ref_year, ref_year + 1),
-    month = 1:12,
-    scenario = c("Low","Medium","High")) |>
-    filter(!(year == ref_year & month <= ref_month)) |>
-    left_join(route_reference, by = "route_id") |>
+  if (five_year){
+    # Create forecast grid until December in five years
+    # one row per route x month x scenario, dropping months already observed
+    forecast_grid <- expand_grid(
+      route_id = unique(route_reference$route_id),
+      year = ref_year:(ref_year + 5),
+      month = 1:12,
+      scenario = c("Low","Medium","High")) |>
+      filter(!(year == ref_year & month <= ref_month)) |>
+      left_join(route_reference, by = "route_id")
 
-    # get a column counting months from ref_month
-    # months_from_ref drives how much cumulative change has accrued by that month
+  } else{
+    # Create forecast grid until December of the next year
+    # one row per route x month x scenario, dropping months already observed
+    forecast_grid <- expand_grid(
+      route_id = unique(route_reference$route_id),
+      year = ref_year:(ref_year + 1),
+      month = 1:12,
+      scenario = c("Low","Medium","High")) |>
+      filter(!(year == ref_year & month <= ref_month)) |>
+      left_join(route_reference, by = "route_id")
+  }
+
+
+  # get a column counting months from ref_month
+  # months_from_ref drives how much cumulative change has accrued by that month
+  forecast_grid <- forecast_grid |>
     mutate(date = ym(paste(year, month,sep = "-")),
            ref_date = ym(paste(ref_year, ref_month,sep = "-")),
            months_from_ref = time_length(interval(ref_date, date), unit = "month")) |>
     select(!c("date","ref_date"))
 
   # add brt column to forecast_grid
-  # flags 1 for route-months on or after that route's planned BRT conversion
   if (!is.null(brt_df)){
     forecast_grid$brt <- 0
     forecast_grid$month_numeric <- as.numeric(forecast_grid$month)
 
     for (row_id in 1:nrow(brt_df)){
       date_used <- as.character(ymd(brt_df$change_date_brt[[row_id]]))
-      month_used <- as.numeric(month(date_used))
-      year_used <- as.numeric(year(date_used))
       brt_route <- as.numeric(brt_df$routes_brt[[row_id]])
 
-      # CAUTION: same pattern as the fare loop in make_model_data_frame().
-      # Month and year are compared independently rather than as a full date, so
-      # a conversion dated 2026-06 would not flag 2027-01 through 2027-05.
-      # Also note brt_route is coerced with as.numeric() while route_id is a
-      # character column, so this comparison relies on implicit coercion and
-      # will not match non-numeric route IDs. (Code left unchanged.)
+      # update the brt with a 1 on the dates after the brt change
       forecast_grid <- forecast_grid |>
-        mutate(brt = case_when(
-          month_numeric >= month_used & year >= year_used & route_id == brt_route ~ 1,
-          TRUE ~ brt
-        ))
+        dplyr::mutate(brt = ifelse(lubridate::ym(paste(year, month_numeric)) >= date_used, 1, brt))
+
+
     }
     forecast_grid$month_numeric <- NULL
   } else{

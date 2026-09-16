@@ -140,21 +140,12 @@ make_model_data_frame <- function(data_xlsx,
     # walk the fare changes in order, overwriting the fare for every month at or
     # after each change date
     for (row_id in 1:nrow(fare_df)){
-      date_used <- as.character(ymd(fare_df$change_date[[row_id]]))
-      month_used <- as.numeric(month(date_used))
-      year_used <- as.numeric(year(date_used))
+      date_used <- ymd(fare_df$change_date[[row_id]])
       new_fare <- as.numeric(fare_df$new_fare[[row_id]])
 
-      # CAUTION: this tests month and year independently rather than comparing
-      # full dates. A change dated 2024-06 will not be applied to 2025-01
-      # through 2025-05, because month_numeric >= 6 fails even though the year
-      # is later. Comparing ym(paste(year, month)) >= ym(date_used) would be the
-      # date-correct version. (Code left unchanged, flagging only.)
+      # update the fare with the new fare on the dates after the fare change
       df_all_log <- df_all_log |>
-        mutate(fare = case_when(
-          month_numeric >= month_used & year >= year_used ~ new_fare,
-          TRUE ~ fare
-        ))
+        dplyr::mutate(fare = ifelse(lubridate::ym(paste(year, month_numeric)) >= date_used, new_fare, fare))
     }
     df_all_log$month_numeric <- NULL
   } else{

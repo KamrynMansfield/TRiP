@@ -1685,6 +1685,11 @@ app_server <- function(input, output, session){
         scenario_df <- grouped_predictions |>
           filter(Route == one_route_in_group)
 
+        if (input$select_1_or_5 == "one"){
+          fiveyear <- FALSE
+        } else{
+          fiveyear <- TRUE
+        }
 
         df_unfiltered <- forecast_ridership(coefs = coefs,
                                             data_xlsx = processed_data,
@@ -1692,9 +1697,8 @@ app_server <- function(input, output, session){
                                             gas_data = gas,
                                             scenario_inputs_df = scenario_df,
                                             start_year = NULL,
-                                            start_month = NULL) #,
-        #fare_df = fare_tbl(), # TODO: make sure this works
-        # brt_df = brt_tbl())
+                                            start_month = NULL,
+                                            five_year = fiveyear)
 
 
         df <- df_unfiltered |>
@@ -1702,15 +1706,6 @@ app_server <- function(input, output, session){
 
         forecast_dfs[[as.character(group_id)]] <- df
       }
-
-
-
-      # Advances to the Visualization tab. Note this observer is created inside a
-      # reactive, so a new one is registered on every run; moving it to the top
-      # level of the server function would avoid accumulating observers.
-      observeEvent(input$buttonRun, {
-        bslib::nav_select("main_nav", "pan_7")
-      })
 
       final_df <- bind_rows(forecast_dfs)
 
@@ -1733,20 +1728,10 @@ app_server <- function(input, output, session){
 
   })
 
-
-  ## PLOT TO WORK WITH FORECASTS ##
-
-  # default system-total chart, also used as a readiness signal by viz_plot
-  forcast_preview <- eventReactive(input$buttonRun, {
-    req(forecast_df())
-    plot_forecast(forecast_df())
+  # Advances to the Visualization tab.
+  observeEvent(input$buttonRun, {
+    bslib::nav_select("main_nav", "pan_7")
   })
-
-
-  # output$forcast_plot <- renderPlot({
-  #   req(forecast_df())
-  #   forcast_preview()
-  # })
 
 
   #### 7. VISUALIZATION PAGE ####
