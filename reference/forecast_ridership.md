@@ -19,7 +19,8 @@ forecast_ridership(
   start_year = NULL,
   start_month = NULL,
   fare_df = NULL,
-  brt_df = NULL
+  brt_df = NULL,
+  five_year = FALSE
 )
 ```
 
@@ -69,6 +70,11 @@ forecast_ridership(
 
   Optional data frame of planned BRT conversions, with `change_date_brt`
   and `routes_brt` columns, as built by the BRT table on tab 5.
+
+- five_year:
+
+  Option ability to forecast for the next 5 years instead of the next
+  year. When `FALSE` (the default), it will only run a 1-year forecast.
 
 ## Value
 

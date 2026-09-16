@@ -6,14 +6,14 @@ This is where you will find documentation to the R code behind the
 ## Introduction
 
 The goal of the TRiP Tool is to help small- to medium- sized transit
-agencies to predict their future ridership.
+agencies predict their future bus ridership.
 
 ## Accessing the App
 
 [Download the PDF Users
 Manual](https://kamrynmansfield.github.io/TRiP/pdf/manual.pdf)
 
-[Open Current TRiP
+[Open TRiP
 Tool](https://019f7142-d057-c4b5-68a3-3421b30aab9e.share.connect.posit.cloud/)
 
 ## Access the App’s Code

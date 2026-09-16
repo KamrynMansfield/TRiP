@@ -65,7 +65,8 @@ conversion.</p>
 <span>  start_year <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  start_month <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  fare_df <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  brt_df <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  brt_df <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  five_year <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -116,6 +117,11 @@ the last observed month of <code>start_year</code> is used.</p></dd>
 <dd><p>Optional data frame of planned BRT conversions, with
 <code>change_date_brt</code> and <code>routes_brt</code> columns, as built by the BRT table on
 tab 5.</p></dd>
+
+
+<dt id="arg-five-year">five_year<a class="anchor" aria-label="anchor" href="#arg-five-year"></a></dt>
+<dd><p>Option ability to forecast for the next 5 years instead of
+the next year. When <code>FALSE</code> (the default), it will only run a 1-year forecast.</p></dd>
 
 </dl></div>
     <div class="section level2">
