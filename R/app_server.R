@@ -33,6 +33,8 @@
 #' @seealso [app_ui()] for the interface these handlers are bound to.
 #'
 #' @keywords internal
+#'
+#' @export
 app_server <- function(input, output, session){
 
   #### 1. SCREENING ####
@@ -1749,7 +1751,6 @@ app_server <- function(input, output, session){
   # redraws whenever the user picks a different route from the dropdown
   output$viz_plot <- renderPlot({
     req(forecast_df())
-    req(forcast_preview())
     df <- forecast_df()
     plot_forecast(df, route = input$input_route_to_plot)
   }, res = 120)

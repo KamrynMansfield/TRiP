@@ -16,7 +16,7 @@
 # coefs <- final_coefs
 # data_xlsx <- vrm_data
 # acs_data <- acs
-# gas_csv <- "data/Midwest_All_Grades_All_Formulations_Retail_Gasoline_Prices.csv"
+# gas_data <- "data/Midwest_All_Grades_All_Formulations_Retail_Gasoline_Prices.csv"
 # scenario_inputs_df <- scenario_df
 # start_year <- NULL
 # start_month <- NULL
@@ -56,8 +56,8 @@
 #'   user-forced literature values substituted in).
 #' @param data_xlsx The agency's uploaded ridership data as a data frame.
 #' @param acs_data Route-level monthly ACS data from [create_final_acs_data()].
-#' @param gas_csv Monthly gas price data with `month`, `year`, and `gas_price`
-#'   columns. Despite the name this is a data frame, not a file path.
+#' @param gas_data Internal data storing historical gas prices obtained
+#' from [U.S. Energy Information Administration](https://www.eia.gov/dnav/pet/pet_pri_gnd_dcus_nus_m.htm)
 #' @param scenario_inputs_df The saved scenario table, with `Variable`,
 #'   `Low.Estimate`, `Mid.Estimate`, and `High.Estimate` columns. Passed to
 #'   [organize_scenario_df()].
@@ -82,7 +82,7 @@
 #' @section Argument mismatches worth checking:
 #' Same two issues flagged in [create_regression_model_forced()]:
 #' `app_server()` calls this with `gas_data = gas` while the formal here is
-#' `gas_csv` (an "unused argument" error), and the call to
+#' `gas_data` (an "unused argument" error), and the call to
 #' `make_model_data_frame()` below passes five arguments to a four-argument
 #' function by adding `brt_df`. Flagged rather than fixed.
 #'
@@ -97,7 +97,7 @@
 forecast_ridership <- function(coefs,
                               data_xlsx,
                               acs_data,
-                              gas_csv,
+                              gas_data,
                               scenario_inputs_df,
                               start_year = NULL,
                               start_month = NULL,
@@ -109,7 +109,7 @@ forecast_ridership <- function(coefs,
 
   # rebuild the same modeling data frame the coefficients were estimated on,
   # so the reference ridership is on the identical scale
-  df_all_log <- make_model_data_frame(data_xlsx, acs_data, gas_csv, fare_df)
+  df_all_log <- make_model_data_frame(data_xlsx, acs_data, gas_data, fare_df)
 
   min_year <- min(df_all_log$year) # must match the centering used at estimation
 

@@ -10,8 +10,13 @@ Description: A shiny app to forecast bus ridership
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
+Remotes: rstudio/gridlayout
 Imports: 
     bslib,
+    gridlayout,
+    tidyr,
+    tibble,
+    stringr,
     dplyr,
     DT,
     fixest,
@@ -19,17 +24,10 @@ Imports:
     gt,
     leaflet,
     lubridate,
-    lwgeom,
-    modelsummary,
-    pak,
-    patchwork,
-    purrr,
     readr,
     readxl,
-    scales,
     sf,
     shiny,
-    shinyjs,
     tidycensus,
     tidytransit,
     tigris,
@@ -45,5 +43,6 @@ LazyData: true
 Config/roxygen2/version: 8.1.0
 Suggests: 
     knitr,
-    rmarkdown
+    rmarkdown,
+    lwgeom
 VignetteBuilder: knitr

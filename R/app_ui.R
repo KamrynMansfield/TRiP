@@ -594,7 +594,8 @@ app_ui <- function() {
             # users can select whether they want a 5-year or a 1-year forecast
             selectInput(
               "select_1_or_5",
-              list("1-year forecast" = "one", "5-year forecast" = "five"),
+              label = "",
+              choices = list("1-year forecast" = "one", "5-year forecast" = "five"),
               selected = "one"
             ),
             # runs the forecast; input_task_button disables itself while busy

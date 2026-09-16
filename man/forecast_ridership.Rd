@@ -13,7 +13,8 @@ forecast_ridership(
   start_year = NULL,
   start_month = NULL,
   fare_df = NULL,
-  brt_df = NULL
+  brt_df = NULL,
+  five_year = FALSE
 )
 }
 \arguments{
@@ -43,6 +44,9 @@ the last observed month of \code{start_year} is used.}
 \item{brt_df}{Optional data frame of planned BRT conversions, with
 \code{change_date_brt} and \code{routes_brt} columns, as built by the BRT table on
 tab 5.}
+
+\item{five_year}{Option ability to forecast for the next 5 years instead of
+the next year. When \code{FALSE} (the default), it will only run a 1-year forecast.}
 }
 \value{
 A data frame combining observed history and forecast, with columns
