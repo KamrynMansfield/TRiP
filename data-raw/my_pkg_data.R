@@ -3,12 +3,8 @@
 # State Planes Data
 load("inst/extdata/state_planes_crs.rda")
 
-usethis::use_data(state_planes_crs, overwrite = TRUE, internal = TRUE)
-
 # US Counties Data
 us_counties <- readRDS("inst/extdata/us_counties.rds")
-
-usethis::use_data(us_counties, overwrite = TRUE, internal = TRUE)
 
 # Gas Price Data
 gas <- readr::read_csv("inst/extdata/Midwest_All_Grades_All_Formulations_Retail_Gasoline_Prices.csv",
@@ -20,5 +16,7 @@ gas <- readr::read_csv("inst/extdata/Midwest_All_Grades_All_Formulations_Retail_
          year = lubridate::year(date)) |>
   dplyr::select(-date)
 
-usethis::use_data(gas, overwrite = TRUE, internal = TRUE)
+
+
+usethis::use_data(state_planes_crs, us_counties, gas, overwrite = TRUE, internal = TRUE)
 
