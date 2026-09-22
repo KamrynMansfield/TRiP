@@ -455,7 +455,7 @@ app_ui <- function() {
             ),
             radioButtons(
               inputId = "fare_question",
-              label = "In the next year, do you plan to increase the adult base fare?",
+              label = "In the next year, do you plan to change the adult base fare?",
               choices = list("No" = "no","Yes" = "yes"),
               selected = "no",
               inline = TRUE

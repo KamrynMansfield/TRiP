@@ -687,7 +687,7 @@ app_server <- function(input, output, session){
         modalDialog(
           title = "ERROR",
           easy_close = TRUE,
-          "It looks like you have nut uploaded your riderhsip data. Can not retrieve census data without riderhsip data."
+          "It looks like you have not uploaded your riderhsip data. Can not retrieve census data without riderhsip data."
         )
       )
 
