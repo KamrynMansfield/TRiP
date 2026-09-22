@@ -105,7 +105,9 @@ forecast_ridership <- function(coefs,
                               brt_df = NULL,
                               five_year = FALSE){
 
-  #TODO: make it able to output a 5-year forecast.
+  # TODO: something weird happens with the five-year forecasts
+  # when there are really low negative forecasts
+  # I need to double check to see what is happening
 
   # rebuild the same modeling data frame the coefficients were estimated on,
   # so the reference ridership is on the identical scale
