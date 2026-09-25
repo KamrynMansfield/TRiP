@@ -61,7 +61,7 @@
 #' @importFrom viridis viridis
 #' @importFrom leaflet addPolygons addPolylines addProviderTiles colorFactor
 #' @importFrom leaflet highlightOptions labelOptions leaflet leafletOutput
-#' @importFrom leaflet renderLeaflet
+#' @importFrom leaflet renderLeaflet addTiles
 #' @importFrom DT coerceValue dataTableProxy datatable DTOutput formatStyle
 #' @importFrom DT renderDT replaceData
 #' @importFrom gt cell_fill cells_body cols_hide gt gt_output render_gt tab_style

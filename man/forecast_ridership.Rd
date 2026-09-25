@@ -8,7 +8,7 @@ forecast_ridership(
   coefs,
   data_xlsx,
   acs_data,
-  gas_csv,
+  gas_data,
   scenario_inputs_df,
   start_year = NULL,
   start_month = NULL,
@@ -26,8 +26,8 @@ user-forced literature values substituted in).}
 
 \item{acs_data}{Route-level monthly ACS data from \code{\link[=create_final_acs_data]{create_final_acs_data()}}.}
 
-\item{gas_csv}{Monthly gas price data with \code{month}, \code{year}, and \code{gas_price}
-columns. Despite the name this is a data frame, not a file path.}
+\item{gas_data}{Internal data storing historical gas prices obtained
+from \href{https://www.eia.gov/dnav/pet/pet_pri_gnd_dcus_nus_m.htm}{U.S. Energy Information Administration}}
 
 \item{scenario_inputs_df}{The saved scenario table, with \code{Variable},
 \code{Low.Estimate}, \code{Mid.Estimate}, and \code{High.Estimate} columns. Passed to
@@ -68,7 +68,7 @@ conversion.
 
 Same two issues flagged in \code{\link[=create_regression_model_forced]{create_regression_model_forced()}}:
 \code{app_server()} calls this with \code{gas_data = gas} while the formal here is
-\code{gas_csv} (an "unused argument" error), and the call to
+\code{gas_data} (an "unused argument" error), and the call to
 \code{make_model_data_frame()} below passes five arguments to a four-argument
 function by adding \code{brt_df}. Flagged rather than fixed.
 }
