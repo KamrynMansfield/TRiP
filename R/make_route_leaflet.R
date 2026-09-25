@@ -29,6 +29,7 @@ make_route_leaflet <- function(routes_sf, county_sf){
   pal <- colorFactor(viridis(50), domain = routes_sf$route_id)
 
   # TODO: make sure the key is working when I publish it.
+  my_carto_key <- "cb1_3xac_1_e07e7487b3f4a125a579b3ff"
 
   # Options include: /voyager/, /light_all/ (Positron), or /dark_all/ (Dark Matter)
   carto_url <- paste0("https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=", my_carto_key)
