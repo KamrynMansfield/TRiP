@@ -575,8 +575,8 @@ app_ui <- function() {
               # routes that already have assumptions stored
               "route_mode",
               "Apply scenario to:",
-              choices = c("New routes (not yet saved)" = "new",
-                          "Existing routes (overwrite saved routes)" = "overwrite"),
+              choices = c("Routes without existing forecast" = "new",
+                          "Routes with existing forecast (overwrite saved forecasts)" = "overwrite"),
               selected = "new",
               inline = TRUE
             ),
