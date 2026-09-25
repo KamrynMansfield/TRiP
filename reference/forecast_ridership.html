@@ -60,7 +60,7 @@ conversion.</p>
 <span>  <span class="va">coefs</span>,</span>
 <span>  <span class="va">data_xlsx</span>,</span>
 <span>  <span class="va">acs_data</span>,</span>
-<span>  <span class="va">gas_csv</span>,</span>
+<span>  <span class="va">gas_data</span>,</span>
 <span>  <span class="va">scenario_inputs_df</span>,</span>
 <span>  start_year <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  start_month <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -88,9 +88,9 @@ user-forced literature values substituted in).</p></dd>
 <dd><p>Route-level monthly ACS data from <code><a href="create_final_acs_data.html">create_final_acs_data()</a></code>.</p></dd>
 
 
-<dt id="arg-gas-csv">gas_csv<a class="anchor" aria-label="anchor" href="#arg-gas-csv"></a></dt>
-<dd><p>Monthly gas price data with <code>month</code>, <code>year</code>, and <code>gas_price</code>
-columns. Despite the name this is a data frame, not a file path.</p></dd>
+<dt id="arg-gas-data">gas_data<a class="anchor" aria-label="anchor" href="#arg-gas-data"></a></dt>
+<dd><p>Internal data storing historical gas prices obtained
+from <a href="https://www.eia.gov/dnav/pet/pet_pri_gnd_dcus_nus_m.htm" class="external-link">U.S. Energy Information Administration</a></p></dd>
 
 
 <dt id="arg-scenario-inputs-df">scenario_inputs_df<a class="anchor" aria-label="anchor" href="#arg-scenario-inputs-df"></a></dt>
@@ -139,7 +139,7 @@ the observed line when plotted.</p>
 
 <p>Same two issues flagged in <code>create_regression_model_forced()</code>:
 <code><a href="app_server.html">app_server()</a></code> calls this with <code>gas_data = gas</code> while the formal here is
-<code>gas_csv</code> (an "unused argument" error), and the call to
+<code>gas_data</code> (an "unused argument" error), and the call to
 <code><a href="make_model_data_frame.html">make_model_data_frame()</a></code> below passes five arguments to a four-argument
 function by adding <code>brt_df</code>. Flagged rather than fixed.</p>
     </div>

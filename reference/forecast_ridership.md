@@ -14,7 +14,7 @@ forecast_ridership(
   coefs,
   data_xlsx,
   acs_data,
-  gas_csv,
+  gas_data,
   scenario_inputs_df,
   start_year = NULL,
   start_month = NULL,
@@ -41,10 +41,11 @@ forecast_ridership(
   Route-level monthly ACS data from
   [`create_final_acs_data()`](https://kamrynmansfield.github.io/TRiP/reference/create_final_acs_data.md).
 
-- gas_csv:
+- gas_data:
 
-  Monthly gas price data with `month`, `year`, and `gas_price` columns.
-  Despite the name this is a data frame, not a file path.
+  Internal data storing historical gas prices obtained from [U.S. Energy
+  Information
+  Administration](https://www.eia.gov/dnav/pet/pet_pri_gnd_dcus_nus_m.htm)
 
 - scenario_inputs_df:
 
@@ -89,7 +90,7 @@ to the observed line when plotted.
 
 Same two issues flagged in `create_regression_model_forced()`:
 [`app_server()`](https://kamrynmansfield.github.io/TRiP/reference/app_server.md)
-calls this with `gas_data = gas` while the formal here is `gas_csv` (an
+calls this with `gas_data = gas` while the formal here is `gas_data` (an
 "unused argument" error), and the call to
 [`make_model_data_frame()`](https://kamrynmansfield.github.io/TRiP/reference/make_model_data_frame.md)
 below passes five arguments to a four-argument function by adding
