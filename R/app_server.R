@@ -604,8 +604,15 @@ app_server <- function(input, output, session){
       make_route_leaflet(route_sf(),county_sf())
     })
 
-    output$acs_description <- renderText({
-      "Your transit routes and the counties they cross are displayed to the right. If these are the routes and counties you expected, you are ready for the next step. Input your Census API key, and click the button to pull census data."
+    output$acs_description <- renderUI({
+      markdown("
+      Your transit routes and the counties they cross are displayed to the right.
+      If these are the routes and counties you expected, you are ready for the next step.
+      Input your Census API key to get census data.
+
+      Need an API key? [click here](https://api.census.gov/data/key_signup.html)
+               ")
+
     })
 
 

@@ -244,7 +244,7 @@ app_ui <- function() {
             "Upload your agency's GTFS zip file",
             # GTFS zip; route_id values here must match those in the ridership file
             fileInput("upload_routes","GTFS Upload", accept = ".zip"),
-            textOutput(outputId = "acs_description"),
+            uiOutput(outputId = "acs_description"),
             uiOutput(outputId = "api_key_placeholder"),
             uiOutput(outputId = "api_button_placeholder"),
             uiOutput(outputId = "acs_button_placeholder")
