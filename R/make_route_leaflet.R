@@ -28,9 +28,23 @@ make_route_leaflet <- function(routes_sf, county_sf){
   # one distinct color per route, sampled from the viridis palette
   pal <- colorFactor(viridis(50), domain = routes_sf$route_id)
 
+  # TODO: make sure the key is working when I publish it.
+
+  # Options include: /voyager/, /light_all/ (Positron), or /dark_all/ (Dark Matter)
+  carto_url <- paste0("https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=", my_carto_key)
+
+  # routes_sf <- get_gtfs_routes("../test_files/nashville_gtfs.zip")
+  # county_sf <- find_overlapping_counties(routes_sf)
+
   leaflet(routes_sf) |>
     # muted basemap so the route colors stay readable
-    addProviderTiles("CartoDB.Positron") |>
+    # addProviderTiles("CartoDB.Positron",
+    #                  options = providerTileOptions(apikey = "cb1_3xac_1_e07e7487b3f4a125a579b3ff")) |>
+
+    addTiles(
+      urlTemplate = carto_url,
+      attribution = '&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    ) |>
 
     # county outlines drawn first so they sit beneath the routes
     addPolygons(data = county_sf, color = "grey", weight = 2) |>
