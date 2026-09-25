@@ -605,7 +605,7 @@ app_server <- function(input, output, session){
     })
 
     output$acs_description <- renderText({
-      "Your transit routes and the counties they cross are displayed to the right. If these are the routes and counties you expected, you are ready for the next step. Input your Census API keye, and click the button to pull census data."
+      "Your transit routes and the counties they cross are displayed to the right. If these are the routes and counties you expected, you are ready for the next step. Input your Census API key, and click the button to pull census data."
     })
 
 
