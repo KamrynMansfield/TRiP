@@ -29,6 +29,7 @@ make_route_leaflet <- function(routes_sf, county_sf){
   pal <- colorFactor(viridis(50), domain = routes_sf$route_id)
 
   # TODO: make sure the key is working when I publish it.
+  my_carto_key <- "cb1_3xac_1_e07e7487b3f4a125a579b3ff"
 
   # routes_sf <- get_gtfs_routes("../test_files/nashville_gtfs.zip")
   # county_sf <- find_overlapping_counties(routes_sf)
