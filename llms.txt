@@ -65,6 +65,8 @@ Details of the coding behind the app.
   : Find EPSG code for State Plane CRS
 - [`get_gtfs_routes()`](https://kamrynmansfield.github.io/TRiP/reference/get_gtfs_routes.md)
   : Get transit route geometry
+- [`get_max_acs_year()`](https://kamrynmansfield.github.io/TRiP/reference/get_max_acs_year.md)
+  : Find most recently available year for ACS 5-year annual estimates
 - [`get_tract_geometry()`](https://kamrynmansfield.github.io/TRiP/reference/get_tract_geometry.md)
   : Get census tract geometry for given counties
 - [`make_route_leaflet()`](https://kamrynmansfield.github.io/TRiP/reference/make_route_leaflet.md)
