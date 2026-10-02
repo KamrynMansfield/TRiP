@@ -37,6 +37,9 @@
 #' @export
 app_server <- function(input, output, session){
 
+  # getting the max acs year available to be used in later functions.
+  max_acs_year <- get_max_acs_year()
+
   #### 1. SCREENING ####
 
   # Evaluates the three screening questions and returns both a flag and the
@@ -271,6 +274,11 @@ app_server <- function(input, output, session){
     check_numeric <- check_numeric()
     check_log <- check_log()
 
+    df <- processed_data() |>
+      mutate(f_date = my(paste0(month,"-",year)))
+
+    lowest_year <- min(df$f_date) |> year()
+
     if (check_names == FALSE & check_numeric == FALSE & check_log == FALSE){
       showModal(
         modalDialog(
@@ -348,7 +356,26 @@ app_server <- function(input, output, session){
       output$rider_data_next_placeholder <- renderUI({
         em("*Upload a compatible file to continue")
       })
-    } else if(check_numeric & check_names) {
+    } else if(check_numeric & check_names & (lowest_year > max_acs_year)) {
+      w_message <- paste0("The earliest your data in this file are from the year ",
+                          lowest_year,
+                          ", but the census data is only current until ",
+                          max_acs_year,
+                          ". If you choose to continue with this data, note that the census data will be extrapolated from previous years and may not be as accurate.")
+      showModal(
+        modalDialog(
+          title = "WARNING",
+          easy_close = TRUE,
+          w_message
+        )
+      )
+
+      output$rider_data_next_placeholder <- renderUI({
+        input_task_button("rider_data_next", "Continue")
+      })
+
+
+    } else if(check_numeric & check_names){
       # maybe I should put another notification saying the file looks good
       # showNotification("File Received and Processed",
       #                  type = "message",
@@ -357,7 +384,6 @@ app_server <- function(input, output, session){
       output$rider_data_next_placeholder <- renderUI({
         input_task_button("rider_data_next", "Continue")
       })
-
 
     } else{
       showNotification("ERROR: There was an unknown error with your file. Please double check to make sure it follows the correct formatting",
@@ -755,8 +781,8 @@ app_server <- function(input, output, session){
 
     # This prevents it from looking for ACS data above 2024.
     # TODO: It sill need to be updated to 2025 when the ACS 2025 data is available
-    if(year_end > 2024){
-      year_end_val <- 2024
+    if(year_end > max_acs_year){
+      year_end_val <- max_acs_year
     } else {
       year_end_val <- year_end
     }
@@ -779,6 +805,10 @@ app_server <- function(input, output, session){
                           state_fps  <- unique(county_info$STATEFP)
                           county_fps <- unique(county_info$COUNTYFP)
                           year_vals  <- (year_start-1):year_end_val
+
+                          if (year_start >= max_acs_year){
+                            year_vals <- (max_acs_year - 1):year_end_val
+                          }
 
                           incProgress(0.20, detail = "Pulling in census tracts")
                           census_tract_geom <- get_tract_geometry(state_fps, county_fps, year_vals)
@@ -876,11 +906,30 @@ app_server <- function(input, output, session){
     fare_tbl <- fare_tbl()
 
 
-    create_regression_model(data_xlsx = xl_data,
+    mod <- create_regression_model(data_xlsx = xl_data,
                             acs_data = acs,
                             gas_data = gas,
                             variables = vars,
                             fare_df = fare_tbl) # TODO: this doesn't seem to be working
+
+    if (!"log_vrm" %in% names(mod$coefficients)){
+      variables_used <- c(names(mod$coefficients), "log_vrm")
+
+      if (TRUE %in% grepl("month",variables_used)){
+        vars <- c(variables_used[grepl("month",variables_used) == FALSE], "factor(month)")
+      } else{
+        vars <- variables_used
+      }
+
+      mod <- create_regression_model_forced(data_xlsx = xl_data,
+                                     acs_data = acs,
+                                     gas_data = gas,
+                                     variables = vars,
+                                     fare_df = fare_tbl)
+    }
+
+    mod
+
   })
 
   # Renders the default model's coefficient table: raw names swapped for

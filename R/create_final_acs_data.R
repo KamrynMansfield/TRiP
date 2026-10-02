@@ -59,6 +59,13 @@ create_final_acs_data <- function(combined_acs_data, intersecting_tracts, start_
     mutate(year = as.numeric(year),
            GEOID = as.character(GEOID))
 
+  # if (start_month >= 2025){
+  #   tract_data <- tract_data |>
+  #     mutate(year = year + 1)
+  #   acs_data <- acs_data |>
+  #     mutate(year = year + 1)
+  # }
+
   # if the tract vintages and the ACS years don't line up, keep only the years
   # present in both and tell the user some rows were dropped
   if (sum(unique(acs_data$year) %in% (unique(tract_data$year))) != length(unique(acs_data$year))){
@@ -163,6 +170,8 @@ create_final_acs_data <- function(combined_acs_data, intersecting_tracts, start_
   # NOTE: the year labels in the comments below (2023/2024) are illustrative;
   # the code is generic and always uses max_date and max_date - 1 year.
 
+
+  # TODO: This is where the error occurs if the user only inputs one year of data.
   if (end_date > max_date){
     extrapolated <- adj_filled %>%
       group_by(route_id, variable) %>%
@@ -173,16 +182,12 @@ create_final_acs_data <- function(combined_acs_data, intersecting_tracts, start_
           # observed and interpolated months are left alone
           variable == "perc_wfh" & date <= max_date ~ value,
 
-          # Hold max year value constant until 2024-11-01
-          variable == "perc_wfh" & date > max_date & date <= end_date ~
-            value[date == max_date],
-
           # From 2024-12-01 onward, add the full annual increment (2022→2023)
-          variable == "perc_wfh" & date >= end_date + months(1) ~ {
-            val_2023 <- value[date == max_date - years(1)]
-            val_2024 <- value[date == max_date]
-            annual_increment <- val_2024 - val_2023
-            val_2024 + annual_increment
+          variable == "perc_wfh" & date > max_date ~ {
+            val_prev_year <- value[date == max_date - years(1)]
+            val_max_year <- value[date == max_date]
+            annual_increment <- val_max_year - val_prev_year
+            val_max_year + (annual_increment * (year(date) - (year(max_date)) - 1))
           },
 
           # --- DEFAULT RULE FOR ALL OTHER VARIABLES ---
@@ -191,12 +196,12 @@ create_final_acs_data <- function(combined_acs_data, intersecting_tracts, start_
             # Linear monthly extrapolation using the change from 2022-12-01 → 2023-12-01
             # i.e. take the last observed year-over-year change, spread it over
             # 12 months, and project it forward month by month
-            val_2023 <- value[date == max_date - years(1)]
-            val_2024 <- value[date == max_date]
+            val_prev_year <- value[date == max_date - years(1)]
+            val_max_year <- value[date == max_date]
 
-            increment <- (val_2024 - val_2023) / 12
+            increment <- (val_max_year - val_prev_year) / 12
             months_ahead <- interval(max_date, date) %/% months(1)
-            val_2024 + increment * months_ahead
+            val_max_year + increment * months_ahead
           }
         )
       ) %>%
@@ -217,13 +222,3 @@ create_final_acs_data <- function(combined_acs_data, intersecting_tracts, start_
   return(adj_monthly)
 
 }
-
-# combined_acs_data <- organized_acs
-# intersecting_tracts <- tract_buffer_data
-# end_month <- month_end
-# start_month <- month_start
-
-# acs_final_test <- create_final_acs_data(combined_acs_data,
-#                                         intersecting_tracts,
-#                                         start_month,
-#                                         end_month)

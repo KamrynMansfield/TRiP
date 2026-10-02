@@ -51,7 +51,7 @@ create_regression_model <- function(data_xlsx,
   df_all_log <- make_model_data_frame(data_xlsx, acs_data, gas_data, fare_df)
 
   # changing the reference monthe to December (just for now)
-  # TODO: Delet this eventually
+  # TODO: Delete this eventually
   # df_all_log$month <- relevel(factor(df_all_log$month), ref = "12")
 
   candidate_variables <- variables
