@@ -38,6 +38,8 @@
 #' @importFrom tibble tibble
 #' @importFrom stringr str_pad str_sub
 #' @importFrom zoo na.approx na.locf
+#' @importFrom jsonlite fromJSON
+#' @importFrom purrr map_chr
 #'
 #' Dates
 #' @importFrom lubridate interval month months time_length year years ym ymd

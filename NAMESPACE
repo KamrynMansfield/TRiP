@@ -9,6 +9,7 @@ export(create_regression_model)
 export(find_overlapping_counties)
 export(get_crs)
 export(get_gtfs_routes)
+export(get_max_acs_year)
 export(get_tract_geometry)
 export(make_route_leaflet)
 export(plot_forecast)
@@ -90,6 +91,7 @@ importFrom(gt,
   render_gt,
   tab_style
 )
+importFrom(jsonlite,fromJSON)
 importFrom(leaflet,
   addPolygons,
   addPolylines,
@@ -111,6 +113,7 @@ importFrom(lubridate,
   ym,
   ymd
 )
+importFrom(purrr,map_chr)
 importFrom(readr,read_csv)
 importFrom(readxl,read_excel)
 importFrom(sf,
