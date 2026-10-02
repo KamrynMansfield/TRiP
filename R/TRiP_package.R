@@ -42,7 +42,7 @@
 #' @importFrom purrr map_chr
 #'
 #' Dates
-#' @importFrom lubridate interval month months time_length year years ym ymd
+#' @importFrom lubridate interval month months time_length year years ym ymd my
 #'
 #' Spatial
 #' @importFrom sf sf_use_s2 st_area st_as_sf st_buffer st_coordinates
