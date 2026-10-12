@@ -1,4 +1,4 @@
-# get_elasticity_varaibles.R ----------------------------------------------
+# get_elasticity_variables.R ----------------------------------------------
 # NOTE: the file and function name contain a typo ("varaibles"). Left as-is
 # because forecast_ridership() and app_server() both call it by that name;
 # renaming would need to happen in all three places at once.
@@ -39,7 +39,7 @@
 #'
 #' @keywords internal
 #' @noRd
-get_elasticity_varaibles <- function(model_coefs = NULL, addnl_vars = NULL){
+get_elasticity_variables <- function(model_coefs = NULL, addnl_vars = NULL){
 
   if (is.null(model_coefs)){
     # fallback defaults drawn from the transit elasticity literature

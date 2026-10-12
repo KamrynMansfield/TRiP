@@ -1510,7 +1510,7 @@ app_server <- function(input, output, session){
   # assumptions of -1% / 2% / 5%, then moves to the Forecasting Inputs tab.
   observeEvent(input$proceed_to_forecast, {
     req(final_coefs())
-    elasticities <- get_elasticity_varaibles(final_coefs(), addnl_vars())
+    elasticities <- get_elasticity_variables(final_coefs(), addnl_vars())
 
     elast_table <- data.frame("Variable" = names(elasticities),
                               "Low" = "-1%",

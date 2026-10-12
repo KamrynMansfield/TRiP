@@ -146,7 +146,7 @@ app_ui <- function() {
               # preview of the parsed upload, so the user can confirm it read correctly
               DTOutput(outputId = "input_data", width = "98%")
             ),
-            "Just one more questions before creating your model for forecasting.",
+            "Just one more question before creating your model for forecasting.",
             radioButtons(
               # gates the fare-change entry form below; fare history feeds log_fare
               # in make_model_data_frame()
@@ -186,7 +186,7 @@ app_ui <- function() {
           area = "area1",
           card_body(
             "Upload a properly formatted excel file with monthly weekday Unlinked Passenger Trips (UPT) and Vehicle Revenue Miles (VRM) for each route.",
-            "(seen example below for data format) \n",
+            "(see example below for data format) \n",
             "Due to unusual ridership patterns during the COVID19 pandemic, it is recommended that your data not go back past the year 2023.",
             # .xlsx only; parsed and validated by the processed_data() reactive
             fileInput("upload_data", "",
@@ -296,7 +296,7 @@ app_ui <- function() {
               backwards stepwise method (see note below).
 
               **Create Your Own Model:** The selection pane below contains every variable that is
-              available to put in the model (see below for variable descriptions). The pre-selected varaibles
+              available to put in the model (see below for variable descriptions). The pre-selected variables
               are those belonging to the default model.
               You may click the selection pane to update which variables you want to test in the model.
               Note that VRM, Month, and Year variables are require to be selected.
@@ -373,7 +373,7 @@ app_ui <- function() {
                 # choices are populated server-side once the ACS data is available, and
                 # pre-selected with whatever the default stepwise model retained
                 selectizeInput(inputId = "variables_forced",
-                               label = "Varaible Selection",
+                               label = "variable Selection",
                                choices = NULL,
                                selected = NULL,
                                multiple = TRUE,
@@ -684,7 +684,7 @@ app_ui <- function() {
           area = "area1",
           card_body(
             "You can download the raw forecast data as either an Excel or a CSV file.
-          (See a description of each of the varaibles below.)",
+          (See a description of each of the variables below.)",
             downloadButton("download_csv", "Download as CSV"),
             downloadButton("download_xlsx", "Download as Excel")
           )
