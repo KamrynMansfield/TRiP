@@ -8,7 +8,7 @@ as a tooltip so the user can confirm the IDs match their ridership file.
 ## Usage
 
 ``` r
-make_route_leaflet(routes_sf, county_sf)
+make_route_leaflet(routes_sf, county_sf = NULL)
 ```
 
 ## Arguments

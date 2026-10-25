@@ -16,6 +16,10 @@
   : Find the counties that overlap the route geometry.
 - [`get_crs()`](https://kamrynmansfield.github.io/TRiP/reference/get_crs.md)
   : Find EPSG code for State Plane CRS
+- [`get_eia_region_code()`](https://kamrynmansfield.github.io/TRiP/reference/get_eia_region_code.md)
+  : Get PADD code for specific region
+- [`get_gas_data()`](https://kamrynmansfield.github.io/TRiP/reference/get_gas_data.md)
+  : Get monthly U.S. retail gasoline prices from the EIA API
 - [`get_gtfs_routes()`](https://kamrynmansfield.github.io/TRiP/reference/get_gtfs_routes.md)
   : Get transit route geometry
 - [`get_max_acs_year()`](https://kamrynmansfield.github.io/TRiP/reference/get_max_acs_year.md)
