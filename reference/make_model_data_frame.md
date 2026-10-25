@@ -9,7 +9,12 @@ can be read as elasticities.
 ## Usage
 
 ``` r
-make_model_data_frame(data_xlsx, acs_data = NULL, gas_data, fare_df = NULL)
+make_model_data_frame(
+  data_xlsx,
+  acs_data = NULL,
+  gas_data = NULL,
+  fare_df = NULL
+)
 ```
 
 ## Arguments
