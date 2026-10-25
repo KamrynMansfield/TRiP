@@ -1,0 +1,52 @@
+state,state_fips,padd_code
+Alabama,1,R30
+Alaska,2,R50
+Arizona,4,R50
+Arkansas,5,R30
+California,6,R50
+Colorado,8,R40
+Connecticut,9,R1X
+Delaware,10,R1Y
+District of Columbia,11,R1Y
+Florida,12,R1Z
+Georgia,13,R1Z
+Hawaii,15,R50
+Idaho,16,R40
+Illinois,17,R20
+Indiana,18,R20
+Iowa,19,R20
+Kansas,20,R20
+Kentucky,21,R20
+Louisiana,22,R30
+Maine,23,R1X
+Maryland,24,R1Y
+Massachusetts,25,R1X
+Michigan,26,R20
+Minnesota,27,R20
+Mississippi,28,R30
+Missouri,29,R20
+Montana,30,R40
+Nebraska,31,R20
+Nevada,32,R50
+New Hampshire,33,R1X
+New Jersey,34,R1Y
+New Mexico,35,R30
+New York,36,R1Y
+North Carolina,37,R1Z
+North Dakota,38,R20
+Ohio,39,R20
+Oklahoma,40,R20
+Oregon,41,R50
+Pennsylvania,42,R1Y
+Rhode Island,44,R1X
+South Carolina,45,R1Z
+South Dakota,46,R20
+Tennessee,47,R20
+Texas,48,R30
+Utah,49,R40
+Vermont,50,R1X
+Virginia,51,R1Z
+Washington,53,R50
+West Virginia,54,R1Z
+Wisconsin,55,R20
+Wyoming,56,R40

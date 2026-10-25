@@ -37,7 +37,7 @@ organize_scenario_df <- function(scenario_inputs_df){
 
   # display label -> model variable lookup. Currently unused: the recode from
   # label to variable name happens in forecast_ridership() via
-  # get_elasticity_varaibles(), and the line applying this key is commented out
+  # get_elasticity_variables(), and the line applying this key is commented out
   # below. Kept here as a reference copy of the mapping.
   name_key <- c("VRM" = "log_vrm",
                   "Gas Price" = "log_gas_price",

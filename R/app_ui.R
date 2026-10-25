@@ -76,10 +76,10 @@ app_ui <- function() {
           area = "area0",
           card_header(
             markdown(mds = c(
-              "The **TRiP App** was created to help small- to medium-sized transit agencies create short-term forecasts to help with their yearly budgets.",
+              "The **TRiP App** was created to help small- to medium-sized transit agencies create short-term ridership forecasts.",
               "<br>",
               "<br>",
-              "Please answer the following questions to see if this app is for your agency."
+              "Please answer the following questions to see if this app is appropriate for your agency."
             ))
           ),
           card_body(
@@ -87,18 +87,21 @@ app_ui <- function() {
               "qRedesign",
               "Has your agency had a system redesign within the last three years?",
               choices = c("Yes" = "yes", "No" = "no"),
+              selected = "no",
               width = "100%"
             ),
             radioButtons(
               "qUniversity",
               "Is a majority of your system ridership from a university or a single employer?",
               choices = c("Yes" = "yes", "No" = "no"),
+              selected = "no",
               width = "100%"
             ),
             radioButtons(
               "qRail",
               "Does your city have light- or heavy-rail transit? If so, have there been any major rail transit investments in the last three years?",
               choices = c("Yes" = "yes", "No" = "no"),
+              selected = "no",
               width = "100%"
             ),
             actionButton("compatibility_button", "Check Compatibility", class = "btn-primary")
@@ -242,6 +245,7 @@ app_ui <- function() {
           card_header("Route Data Upload"),
           card_body(
             "Upload your agency's GTFS zip file",
+            actionLink("skip_gtfs", "Skip this step"),
             # GTFS zip; route_id values here must match those in the ridership file
             fileInput("upload_routes","GTFS Upload", accept = ".zip"),
             uiOutput(outputId = "acs_description"),
@@ -373,9 +377,9 @@ app_ui <- function() {
                 # choices are populated server-side once the ACS data is available, and
                 # pre-selected with whatever the default stepwise model retained
                 selectizeInput(inputId = "variables_forced",
-                               label = "variable Selection",
-                               choices = NULL,
-                               selected = NULL,
+                               label = "Variable Selection",
+                               choices = c("[VRM]" = "log_vrm"),
+                               selected = c("[VRM]" = "log_vrm"),
                                multiple = TRUE,
                                width = "100%"
                 ),
@@ -574,7 +578,7 @@ app_ui <- function() {
               # controls whether Save applies to not-yet-saved routes or overwrites
               # routes that already have assumptions stored
               "route_mode",
-              "Apply scenario to:",
+              "Apply forecasting scenario to:",
               choices = c("Routes without existing forecast" = "new",
                           "Routes with existing forecast (overwrite saved forecasts)" = "overwrite"),
               selected = "new",

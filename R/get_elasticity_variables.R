@@ -1,7 +1,4 @@
 # get_elasticity_variables.R ----------------------------------------------
-# NOTE: the file and function name contain a typo ("varaibles"). Left as-is
-# because forecast_ridership() and app_server() both call it by that name;
-# renaming would need to happen in all three places at once.
 #
 # Bridges the model and the forecasting UI: turns the coefficient names of the
 # chosen model into the labelled variable list the user edits on tab 6, and is
@@ -27,15 +24,6 @@
 #'   variable names. Passed to `recode()` in [forecast_ridership()] and used to
 #'   build the scenario table in `app_server()`.
 #'
-#' @section Note on the BRT filter:
-#' BRT is deliberately excluded, because asking for a "percent increase in BRT"
-#' makes no sense; the app collects BRT conversions as route/date pairs on tab 5
-#' instead. Be aware that `model_coefs[model_coefs != "brt"]` filters on the
-#' coefficient VALUES rather than their names, so it compares numbers to the
-#' string "brt" and never actually drops anything.
-#' `model_coefs[names(model_coefs) != "brt"]` would be the name-based version.
-#' In practice `brt` is filtered out again downstream by the `%in%` check, so
-#' this is more of a tidiness issue than a live bug. (Code left unchanged.)
 #'
 #' @keywords internal
 #' @noRd
@@ -46,8 +34,7 @@ get_elasticity_variables <- function(model_coefs = NULL, addnl_vars = NULL){
     elasticities <- c(log_vrm = .23,
                log_gas_price = .5)
   } else{
-    # see the note above: this filters on values, not names
-    elasticities <- model_coefs[model_coefs != "brt"]
+    elasticities <- model_coefs[names(model_coefs) != "brt"]
   }
 
   # full display-label lookup; names are what the user sees in the scenario table

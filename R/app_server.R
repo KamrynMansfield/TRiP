@@ -38,7 +38,22 @@
 app_server <- function(input, output, session){
 
   # getting the max acs year available to be used in later functions.
-  max_acs_year <- get_max_acs_year()
+  # defaults to 2024 if for some reason it can connect to the api
+  max_acs_year <- tryCatch(
+    {
+      get_max_acs_year()        # Successful return value
+    },
+    warning = function(w) {
+      return(2024)                  # Value to return if warning happens
+    },
+    error = function(e) {
+      return(2024)                    # Value to return if error happens
+    }
+  )
+
+  # get the gas api key working
+  api_key <- Sys.getenv("EIA_API_KEY")
+  eia_set_key(api_key)
 
   #### 1. SCREENING ####
 
@@ -55,7 +70,8 @@ app_server <- function(input, output, session){
             and, therefore, the app's predictions may not be accurate.
             Note that if you have your own data to capture these unique circumstances,
             there is an option to add those to the model.",
-      rail = "This tool is intended for cities and demographics served primarily by bus. If there have been no recent investments in rail transit, you might be able to use this app if you exclude non-bus routes."
+      rail = "This tool is intended for cities and demographics served primarily by bus.
+      Even if you exclude non-bus routes, the results may not be reliable."
     )
 
     selected_warnings <- warnings[c(
@@ -187,6 +203,8 @@ app_server <- function(input, output, session){
       )
       return(NULL)
     }
+    # TODO: Also throw an error if there there are missing values that might
+    # cause the app to crash. (maybe missing route_IDs? Look into Marcus's email)
 
 
   })
@@ -215,7 +233,7 @@ app_server <- function(input, output, session){
     df <- processed_data()
 
     # all columns except rout_id must be able to be numeric
-    numeric_cols <- names(df)[names(df) != c("route_id")]
+    numeric_cols <- names(df)[names(df) != "route_id"]
     for (col in numeric_cols){
       df[,col] <- tryCatch(
         {
@@ -259,13 +277,6 @@ app_server <- function(input, output, session){
   })
 
 
-  # Dispatches a specific error modal for each combination of failed checks,
-  # and renders either the continue button or a nudge to re-upload.
-  # Worth knowing: the branches test combinations in a fixed order, and the
-  # three-way branch requires all three checks to fail simultaneously, so some
-  # combinations fall through to a message that only describes part of the
-  # problem. That is likely the behavior behind the TODO below.
-  # TODO: This doesn't seem to be working properly.
   # send a message if the data is not formatted correctly
   observe({
     req(processed_data())
@@ -619,6 +630,31 @@ app_server <- function(input, output, session){
     find_overlapping_counties(route_sf())
   })
 
+  # getting the counties it touches
+  # Counties the routes pass through. Drives both the map's background layer
+  # and the state/county FIPS codes sent to tigris and tidycensus.
+  gas <- reactive({
+    req(county_sf)
+
+    df <- processed_data()
+    start_year <- min(df$year)
+    start_month <- df$month[df$year == start_year] |>
+      min()
+
+    end_year <- max(df$year)
+    end_month <- df$month[df$year == end_year] |>
+      max()
+
+    reg_code <- get_eia_region_code(county_sf())
+
+    get_gas_data(start_month,
+                 start_year,
+                 end_month,
+                 end_year,
+                 region = reg_code,
+                 product = "EPM0")
+  })
+
   # once someone uploads the gtfs,
   # On a successful upload, draw the map and reveal the API key input and the
   # Census pull button. These are rendered here rather than defined statically
@@ -692,6 +728,8 @@ app_server <- function(input, output, session){
 
   # Validates the key with one cheap, known-good query before accepting it, so
   # a typo is caught here rather than midway through the expensive pull.
+  # also creates a variable showing the validation to use in a later check
+  api_is_valid <- reactiveVal(NULL)
   observeEvent(input$submit_key, {
     k <- trimws(input$api_key)
     req(nzchar(k))
@@ -706,14 +744,17 @@ app_server <- function(input, output, session){
     if (inherits(test, "error")) {
       key_rv(NULL)
       showNotification("Invalid API key — check it and try again.", type = "error")
+      api_is_valid(FALSE)
     } else {
       key_rv(k)
       showNotification("API key accepted.", type = "message")
+      api_is_valid(TRUE)
     }
   })
 
 
-  observeEvent(input$get_acs, {  #TODO: If they haven't input ridership data, this won't run, but in that case I need to put a popup to let users know that.
+  observeEvent(input$get_acs, {
+
 
     if (is.null(input$upload_data)){
       showModal(
@@ -736,6 +777,24 @@ app_server <- function(input, output, session){
     }
 
 
+    if (is.null(api_is_valid())){
+      showModal(
+        modalDialog(
+          title = "ERROR",
+          easy_close = TRUE,
+          "You must input a valid census API key before retrieving data. You can get a free API key on the census website. https://api.census.gov/data/key_signup.html"
+        )
+      )
+    } else if (api_is_valid() == FALSE){
+      showModal(
+        modalDialog(
+          title = "ERROR",
+          easy_close = TRUE,
+          "You must input a valid census API key before retrieving data. You can get a free API key on the census website. https://api.census.gov/data/key_signup.html"
+        )
+      )
+    }
+
     # The spreadsheet and the GTFS feed must name routes identically, otherwise
     # the ACS data could never be joined to ridership. Block if they disagree.
     excel_routes <- unique(processed_data()$route_id)
@@ -757,6 +816,7 @@ app_server <- function(input, output, session){
 
 
     req(data_check() == TRUE)
+    req(api_is_valid() == TRUE)
 
     if (!is.null(key_rv())) {
       tidycensus::census_api_key(key_rv(), install = FALSE, overwrite = TRUE)
@@ -779,8 +839,8 @@ app_server <- function(input, output, session){
       max(na.rm = TRUE)
     month_end <- paste0(year_end, "-", month_end)
 
-    # This prevents it from looking for ACS data above 2024.
-    # TODO: It sill need to be updated to 2025 when the ACS 2025 data is available
+    # This prevents it from looking for ACS data above the years it is availabl.
+    # max_acs_year is created earlier in the script to record the max acs year availabe.
     if(year_end > max_acs_year){
       year_end_val <- max_acs_year
     } else {
@@ -872,6 +932,28 @@ app_server <- function(input, output, session){
     bslib::nav_select("main_nav", "pan_4")
   })
 
+  skipped <- reactiveVal(NULL)
+
+  # move on to the next page
+  observeEvent(input$skip_gtfs, {
+    showModal(modalDialog(
+      title = "Skip Census Retrieval",
+      "This skips waiting for census data retrieval from the API,
+      therefore your model will only be created using data you have input.",
+      footer = tagList(
+        modalButton("Cancel"),
+        actionButton("confirm_skip", "OK", class = "btn-primary")
+      )
+    ))
+  })
+
+  # move on to the next page
+  observeEvent(input$confirm_skip, {
+    removeModal()
+    skipped(TRUE)
+    bslib::nav_select("main_nav", "pan_4")
+  })
+
 
   #### 4. MODEL CREATION ####
   # get first model after user inputs the files
@@ -881,34 +963,47 @@ app_server <- function(input, output, session){
   # labels as names.
   first_model <- reactive({ # first model
     req(input$upload_data$datapath)
-    req(acs_data())
-    acs <- acs_data()
+
+    if (is.null(acs_data())){
+      req(skipped())
+      acs <- NULL
+      vars <- c("[VRM]" = "log_vrm",
+                "[Month]" = "factor(month)",
+                "[Year]" = "year_cent",
+                "[Year Squared]" = "year_cent^2",
+                "[Bus Rapid Transit]" = "brt",
+                "[Adult Base Fare]" = "log_fare",
+                addnl_vars())
+    } else {
+      acs <- acs_data()
+      vars <- c("[VRM]" = "log_vrm",
+                "[Month]" = "factor(month)",
+                "[Year]" = "year_cent",
+                "[Year Squared]" = "year_cent^2",
+                # "[Total Workers]" = "workers_16_over",
+                "[Gas Price]" = "log_gas_price",
+                "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
+                "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
+                "[% Commuting by Car]" = "log_perc_car",
+                "[% Commuting by Taxi]" = "log_perc_taxicab",
+                "[% Work From Home]" = "log_perc_wfh",
+                "[% Female Workers]" = "log_perc_female",
+                "[% Workers Between 100-150% of Federal Povery Level]" = "log_fpl_100_150",
+                "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
+                "[Labor Participation Rate]" = "log_labor_part_rate",
+                "[Unemployment Rate]" = "log_unemp_rate",
+                "[Bus Rapid Transit]" = "brt",
+                "[Adult Base Fare]" = "log_fare",
+                addnl_vars())
+    }
     # acs <- acs_data
     xl_data <- processed_data()
-    vars <- c("[VRM]" = "log_vrm",
-              "[Month]" = "factor(month)",
-              "[Year]" = "year_cent",
-              "[Year Squared]" = "year_cent^2",
-              "[Gas Price]" = "log_gas_price",
-              "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
-              "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
-              "[% Commuting by Car]" = "log_perc_car",
-              "[% Commuting by Taxi]" = "log_perc_taxicab",
-              "[% Work From Home]" = "log_perc_wfh",
-              "[% Female Workers]" = "log_perc_female",
-              "[% Workers Between 100-150% of Federal Povery Level]" = "log_fpl_100_150",
-              "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
-              "[Labor Participation Rate]" = "log_labor_part_rate",
-              "[Unemployment Rate]" = "log_unemp_rate",
-              "[Bus Rapid Transit]" = "brt",
-              "[Adult Base Fare]" = "log_fare",
-              addnl_vars())
     fare_tbl <- fare_tbl()
 
 
     mod <- create_regression_model(data_xlsx = xl_data,
                             acs_data = acs,
-                            gas_data = gas,
+                            gas_data = gas(),
                             variables = vars,
                             fare_df = fare_tbl) # TODO: this doesn't seem to be working
 
@@ -923,7 +1018,7 @@ app_server <- function(input, output, session){
 
       mod <- create_regression_model_forced(data_xlsx = xl_data,
                                      acs_data = acs,
-                                     gas_data = gas,
+                                     gas_data = gas(),
                                      variables = vars,
                                      fare_df = fare_tbl)
     }
@@ -936,6 +1031,8 @@ app_server <- function(input, output, session){
   # readable labels, stars appended by significance, and rows shaded green to
   # yellow by p-value. The numeric pval helper column is hidden at the end.
   output$tbl_mod_stepwise <- render_gt({
+    req(first_model())
+
     created_model <- first_model() # first model
 
     name_key <- c("VRM" = "log_vrm",
@@ -1070,6 +1167,22 @@ app_server <- function(input, output, session){
 
                })
 
+  observeEvent(input$variables_forced,{
+
+    selected <- input$variables_forced
+
+    if(!"log_vrm" %in% selected){
+      updateSelectizeInput(inputId = "variables_forced",
+                           selected = c(input$variables_forced, "[VRM]" = "log_vrm"))
+      showNotification(
+        paste("VRM must be present in the model"),
+        type = "message",
+        duration = 2
+      )
+    }
+
+  }, ignoreNULL = FALSE)
+
   # value to make sure the model has been run
   # Left over from an earlier two-model flow; model_forced() is now the source
   # of truth for whether a custom model exists.
@@ -1080,18 +1193,22 @@ app_server <- function(input, output, session){
 
 
   # Fits the user's hand-picked specification with no stepwise elimination.
-  # NOTE: gas_data = gas is passed here, but create_regression_model_forced()
-  # declares that parameter as gas_csv, so this call will error with
-  # "unused argument" until the two names agree.
   observeEvent(input$run_model_forced,
                ignoreNULL = TRUE,
                {
+                 if(is.null(input$upload_data$datapath)){
+                   showNotification(
+                     paste("Please upload ridership data first"),
+                     type = "message",
+                     duration = 2
+                   )
+                 }
+
                  req(input$upload_data$datapath)
-                 req(acs_data())
 
                  mod <- create_regression_model_forced(data_xlsx = processed_data(),
                                                        acs_data = acs_data(),
-                                                       gas_data = gas,
+                                                       gas_data = gas(),
                                                        variables = input$variables_forced,
                                                        fare_df = fare_tbl())
                  model_forced(mod)
@@ -1539,7 +1656,7 @@ app_server <- function(input, output, session){
       updateSelectInput(
         session, "route_selected",
         choices = choices,
-        selected = if (length(rem)) rem[1] else "__ALL_REMAINING__"
+        selected = "__ALL_REMAINING__"
       )
 
     } else { # overwrite mode
@@ -1679,7 +1796,6 @@ app_server <- function(input, output, session){
   forecast_df <- eventReactive(input$buttonRun, {
 
     req(final_coefs())
-    req(acs_data())
     req(!is.null(v$data))
     req(saved$by_route)
 
@@ -1752,10 +1868,11 @@ app_server <- function(input, output, session){
         df_unfiltered <- forecast_ridership(coefs = coefs,
                                             data_xlsx = processed_data,
                                             acs_data = acs,
-                                            gas_data = gas,
+                                            gas_data = gas(),
                                             scenario_inputs_df = scenario_df,
                                             start_year = NULL,
                                             start_month = NULL,
+                                            # brt_df = brt_tbl(),
                                             five_year = fiveyear)
 
 

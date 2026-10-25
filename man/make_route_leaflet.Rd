@@ -4,7 +4,7 @@
 \alias{make_route_leaflet}
 \title{Build the interactive route map}
 \usage{
-make_route_leaflet(routes_sf, county_sf)
+make_route_leaflet(routes_sf, county_sf = NULL)
 }
 \arguments{
 \item{routes_sf}{An \code{sf} object of route geometries with a \code{route_id}

@@ -42,8 +42,8 @@
 #' @keywords internal
 #' @noRd
 make_model_data_frame <- function(data_xlsx,
-                                    acs_data,
-                                    gas_data,
+                                    acs_data = NULL,
+                                    gas_data = NULL,
                                   fare_df = NULL){
   # load in upt and vrm data
   data <- data_xlsx
@@ -73,30 +73,44 @@ make_model_data_frame <- function(data_xlsx,
   # centering at the first year of data keeps year_cent^2 well scaled
   df$year_cent <- df$year - min_year
 
-  # load in preprocessed monthly American Community Survey data
-  acs <- acs_data
+  # if there is acs data, we need to add that to the data frame
+  if (!is.null(acs_data)){
 
-  # load in gas_prices data
-  gas <- gas_data
+    # load in preprocessed monthly American Community Survey data
+    acs <- acs_data
 
-  # create month and year column for ACS
-  # (ACS arrives with a date column; split it so it joins on the same keys)
-  acs <- acs %>%
-    mutate(month = month(date),
-           year = year(date)) %>%
-    select(-date)
+    # load in gas_prices data
+    gas <- gas_data
 
-  # force the join key to a common type; route IDs are often numeric-looking
-  # strings and a type mismatch would silently drop every row
-  df$route_id <- as.character(df$route_id)
-  acs$route_id <- as.character(acs$route_id)
+    # create month and year column for ACS
+    # (ACS arrives with a date column; split it so it joins on the same keys)
+    acs <- acs %>%
+      mutate(month = month(date),
+             year = year(date)) %>%
+      select(-date)
 
-  # combine gas prices and acs with upt and vrm
-  # gas varies by month only; ACS varies by month and route
-  df_all <- df %>%
-    left_join(gas, by = c("month", "year")) %>%
-    left_join(acs, by = c("month", "year", "route_id")) %>%
-    mutate(month = factor(month)) # factor so it enters the model as seasonality dummies
+    # force the join key to a common type; route IDs are often numeric-looking
+    # strings and a type mismatch would silently drop every row
+    df$route_id <- as.character(df$route_id)
+    acs$route_id <- as.character(acs$route_id)
+
+    # combine gas prices (if they exist) and acs with upt and vrm
+    # gas varies by month only; ACS varies by month and route
+    if(is.null(gas)){
+      df_all <- df %>%
+        left_join(acs, by = c("month", "year", "route_id")) %>%
+        mutate(month = factor(month)) # factor so it enters the model as seasonality dummies
+    } else{
+      df_all <- df %>%
+        left_join(gas, by = c("month", "year")) %>%
+        left_join(acs, by = c("month", "year", "route_id")) %>%
+        mutate(month = factor(month)) # factor so it enters the model as seasonality dummies
+    }
+
+  } else{
+    df_all <- df
+  }
+
 
   # make upt a weekday average using number of weekdays in the month
   # this removes the sawtooth caused by months having different weekday counts
@@ -119,11 +133,11 @@ make_model_data_frame <- function(data_xlsx,
   # forecasting step assumes when it applies percent changes
   df_all_log <- df_all %>%
     mutate(across(
-      all_of(vars_to_log),
+      any_of(vars_to_log),
       ~ if_else(. > 0, log(.), NA_real_),   # safely take log only if positive
       .names = "log_{.col}"          # rename: log_variable
     )) %>%
-    select(-all_of(vars_to_log))
+    select(-any_of(vars_to_log))
 
   # add fares column
 

@@ -70,15 +70,19 @@ create_regression_model <- function(data_xlsx,
     if (length(candidate_variables) == 0) stop("No candidate variables left to fit.")
 
     # create the model
-    # NOTE: if "year_cent^2" is among the candidates, R's formula parser reads
-    # `^` as interaction expansion, so `year_cent^2` collapses to `year_cent`
-    # rather than a quadratic term. `I(year_cent^2)` is the form that produces a
-    # true squared term, and it is the name the rejection branch below expects.
-    # Worth verifying against your model output. (Code left unchanged.)
     lm_vrm <- feols(as.formula(paste("log_upt_avg~", paste(candidate_variables, collapse = " + "), "| route_id")), data=df_all_log, cluster= ~route_id)
 
     # get vector of p-values
     pvals <- lm_vrm$coeftable[,"Pr(>|t|)"]
+
+    # remove month values
+    pvals <- pvals[grepl("month",names(pvals)) == FALSE]
+
+    # run a wald test to get a p-value representing joint significance for all months
+    wald_test <- fixest::wald(lm_vrm, keep = "factor\\(month\\)", print = FALSE)
+
+    # add new month p-value
+    pvals <- c(pvals, `factor(month)` = wald_test$p)
 
     # get the max p-value
     max_p <- max(pvals, na.rm = TRUE)
@@ -92,10 +96,6 @@ create_regression_model <- function(data_xlsx,
     # the formula, so translate them back before removing the term
     if (rejected_var == "I(year_cent^2)"){
       rejected_var <- "year_cent^2"
-    } else if (grepl("month",rejected_var, ignore.case = TRUE)){
-      # month enters as a factor, so one insignificant month dummy drops the
-      # entire seasonality term rather than that single month
-      rejected_var <- "factor(month)"
     }
 
     n_iter <- n_iter + 1

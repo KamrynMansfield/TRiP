@@ -105,9 +105,6 @@ forecast_ridership <- function(coefs,
                               brt_df = NULL,
                               five_year = FALSE){
 
-  # TODO: something weird happens with the five-year forecasts
-  # when there are really low negative forecasts
-  # I need to double check to see what is happening
 
   # rebuild the same modeling data frame the coefficients were estimated on,
   # so the reference ridership is on the identical scale
@@ -122,7 +119,7 @@ forecast_ridership <- function(coefs,
   elasticities <- coefs[!grepl("factor\\(month\\)|year_cent|workers_16_over|median_earnings|emp_pop_ratio", names(coefs))]
 
   # display label -> model variable lookup, used to recode the scenario table
-  elast_names <- get_elasticity_varaibles(coefs)
+  elast_names <- get_elasticity_variables(coefs)
 
   # get month coefficients if they are part of the model
   if (sum(grepl("factor\\(month\\)", names(coefs))) > 0) {
@@ -329,6 +326,8 @@ forecast_ridership <- function(coefs,
     summarize(route_id = "all_routes",
               avg_daily_upt = sum(avg_daily_upt, na.rm = T),
               .groups = "drop_last")
+
+  final_df$route_id <- as.character(final_df$route_id)
 
   final_df <- bind_rows(final_df, new_route_df)
 
