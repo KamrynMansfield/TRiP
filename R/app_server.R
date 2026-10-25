@@ -53,7 +53,7 @@ app_server <- function(input, output, session){
 
   # get the gas api key working
   api_key <- Sys.getenv("EIA_API_KEY")
-  eia_set_key(api_key)
+  eia::eia_set_key(api_key)
 
   #### 1. SCREENING ####
 

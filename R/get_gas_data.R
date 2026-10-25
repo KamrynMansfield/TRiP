@@ -24,7 +24,7 @@ get_gas_data <- function(start_month,
 
   # Try pulling the data from the api. If the call fails, then NULL will be returned
   raw <- tryCatch({
-    eia_data(
+    eia::eia_data(
       dir     = "petroleum/pri/gnd",
       data    = "value",
       facets  = list(product = product, duoarea = region),
