@@ -36,8 +36,7 @@ Imports:
     writexl,
     zoo,
     jsonlite,
-    purrr,
-    eia
+    purrr
 URL: https://github.com/KamrynMansfield/TRiP, https://kamrynmansfield.github.io/TRiP/
 BugReports: https://github.com/KamrynMansfield/TRiP/issues
 Depends: 

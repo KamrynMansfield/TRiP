@@ -51,9 +51,10 @@ app_server <- function(input, output, session){
     }
   )
 
-  # get the gas api key working
-  api_key <- Sys.getenv("EIA_API_KEY")
-  eia::eia_set_key(api_key)
+  # TODO: uncomment once posit connect cloud is working
+  # # get the gas api key working
+  # api_key <- Sys.getenv("EIA_API_KEY")
+  # eia::eia_set_key(api_key)
 
   #### 1. SCREENING ####
 
@@ -630,30 +631,31 @@ app_server <- function(input, output, session){
     find_overlapping_counties(route_sf())
   })
 
-  # getting the counties it touches
-  # Counties the routes pass through. Drives both the map's background layer
-  # and the state/county FIPS codes sent to tigris and tidycensus.
-  gas <- reactive({
-    req(county_sf)
-
-    df <- processed_data()
-    start_year <- min(df$year)
-    start_month <- df$month[df$year == start_year] |>
-      min()
-
-    end_year <- max(df$year)
-    end_month <- df$month[df$year == end_year] |>
-      max()
-
-    reg_code <- get_eia_region_code(county_sf())
-
-    get_gas_data(start_month,
-                 start_year,
-                 end_month,
-                 end_year,
-                 region = reg_code,
-                 product = "EPM0")
-  })
+  # TODO: posit connect cloud fails when trhing to load in eia package.
+  #       Once I fix that, I need to uncomment this code and change some of the
+  #       "gas" varaibles in this file to "gas()"
+  #  using the counties to get regional gas data
+  # gas <- reactive({
+  #   req(county_sf)
+  #
+  #   df <- processed_data()
+  #   start_year <- min(df$year)
+  #   start_month <- df$month[df$year == start_year] |>
+  #     min()
+  #
+  #   end_year <- max(df$year)
+  #   end_month <- df$month[df$year == end_year] |>
+  #     max()
+  #
+  #   reg_code <- get_eia_region_code(county_sf())
+  #
+  #   get_gas_data(start_month,
+  #                start_year,
+  #                end_month,
+  #                end_year,
+  #                region = reg_code,
+  #                product = "EPM0")
+  # })
 
   # once someone uploads the gtfs,
   # On a successful upload, draw the map and reveal the API key input and the
@@ -1003,7 +1005,7 @@ app_server <- function(input, output, session){
 
     mod <- create_regression_model(data_xlsx = xl_data,
                             acs_data = acs,
-                            gas_data = gas(),
+                            gas_data = gas,
                             variables = vars,
                             fare_df = fare_tbl) # TODO: this doesn't seem to be working
 
@@ -1018,7 +1020,7 @@ app_server <- function(input, output, session){
 
       mod <- create_regression_model_forced(data_xlsx = xl_data,
                                      acs_data = acs,
-                                     gas_data = gas(),
+                                     gas_data = gas,
                                      variables = vars,
                                      fare_df = fare_tbl)
     }
@@ -1208,7 +1210,7 @@ app_server <- function(input, output, session){
 
                  mod <- create_regression_model_forced(data_xlsx = processed_data(),
                                                        acs_data = acs_data(),
-                                                       gas_data = gas(),
+                                                       gas_data = gas,
                                                        variables = input$variables_forced,
                                                        fare_df = fare_tbl())
                  model_forced(mod)
@@ -1868,7 +1870,7 @@ app_server <- function(input, output, session){
         df_unfiltered <- forecast_ridership(coefs = coefs,
                                             data_xlsx = processed_data,
                                             acs_data = acs,
-                                            gas_data = gas(),
+                                            gas_data = gas,
                                             scenario_inputs_df = scenario_df,
                                             start_year = NULL,
                                             start_month = NULL,
