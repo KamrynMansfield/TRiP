@@ -4,7 +4,12 @@
 \alias{make_model_data_frame}
 \title{Build the modeling data frame}
 \usage{
-make_model_data_frame(data_xlsx, acs_data = NULL, gas_data, fare_df = NULL)
+make_model_data_frame(
+  data_xlsx,
+  acs_data = NULL,
+  gas_data = NULL,
+  fare_df = NULL
+)
 }
 \arguments{
 \item{data_xlsx}{The agency's uploaded ridership data as a data frame. Must

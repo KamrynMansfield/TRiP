@@ -41,6 +41,9 @@
 #' @importFrom jsonlite fromJSON
 #' @importFrom purrr map_chr
 #'
+#' API Retrieval
+#' @importFrom eia eia_data eia_set_key
+#'
 #' Dates
 #' @importFrom lubridate interval month months time_length year years ym ymd my
 #'

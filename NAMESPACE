@@ -63,6 +63,10 @@ importFrom(dplyr,
   summarize,
   ungroup
 )
+importFrom(eia,
+  eia_data,
+  eia_set_key
+)
 importFrom(fixest,
   feols,
   fixef,
