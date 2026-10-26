@@ -1144,12 +1144,84 @@ app_server <- function(input, output, session){
   # candidate variable, pre-selecting the ones the default model kept. Month
   # dummies and the squared year term are collapsed back to their formula form
   # ("factor(month)", "year_cent^2") so the selection round-trips correctly.
-  observeEvent(acs_data(),
+  # observeEvent(acs_data(),
+  #              {
+  #                req(acs_data())
+  #                variables_used <- names(first_model()$coefficients) #first model
+  #
+  #                if (is.null(gas())){
+  #                  all_vars <- c("[VRM]" = "log_vrm",
+  #                                "[Month]" = "factor(month)",
+  #                                "[Year]" = "year_cent",
+  #                                "[Year Squared]" = "year_cent^2",
+  #                                "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
+  #                                "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
+  #                                "[% Commuting by Car]" = "log_perc_car",
+  #                                "[% Commuting by Taxi]" = "log_perc_taxicab",
+  #                                "[% Work From Home]" = "log_perc_wfh",
+  #                                "[% Female Workers]" = "log_perc_female",
+  #                                "[% Workers Between 100-150% of Federal Povery Level]" = "log_fpl_100_150",
+  #                                "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
+  #                                "[Labor Participation Rate]" = "log_labor_part_rate",
+  #                                "[Unemployment Rate]" = "log_unemp_rate",
+  #                                "[Bus Rapid Transit]" = "brt",
+  #                                "[Adult Base Fare]" = "log_fare",
+  #                                addnl_vars())
+  #                } else{
+  #                  all_vars <- c("[VRM]" = "log_vrm",
+  #                                "[Month]" = "factor(month)",
+  #                                "[Year]" = "year_cent",
+  #                                "[Year Squared]" = "year_cent^2",
+  #                                "[Gas Price]" = "log_gas_price",
+  #                                "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
+  #                                "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
+  #                                "[% Commuting by Car]" = "log_perc_car",
+  #                                "[% Commuting by Taxi]" = "log_perc_taxicab",
+  #                                "[% Work From Home]" = "log_perc_wfh",
+  #                                "[% Female Workers]" = "log_perc_female",
+  #                                "[% Workers Between 100-150% of Federal Povery Level]" = "log_fpl_100_150",
+  #                                "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
+  #                                "[Labor Participation Rate]" = "log_labor_part_rate",
+  #                                "[Unemployment Rate]" = "log_unemp_rate",
+  #                                "[Bus Rapid Transit]" = "brt",
+  #                                "[Adult Base Fare]" = "log_fare",
+  #                                addnl_vars())
+  #                }
+  #
+  #
+  #                if (TRUE %in% grepl("month",variables_used)){
+  #                  new_selected <- c(variables_used[grepl("month",variables_used) == FALSE], "factor(month)")
+  #                } else{
+  #                  new_selected <- variables_used
+  #                }
+  #                if (TRUE %in% grepl("year_cent^2",new_selected,fixed = TRUE)){
+  #                  new_selected <- c(new_selected[grepl("year_cent^2",new_selected,fixed = TRUE) == FALSE], "year_cent^2")
+  #                }
+  #
+  #                new_vars <- all_vars[all_vars %in% new_selected]
+  #
+  #
+  #                updateSelectizeInput(inputId = "variables_forced",
+  #                                     choices = all_vars,
+  #                                     selected = new_vars)
+  #
+  #              })
+
+  # Once the first model is made, populate the variable picker on tab 4 with every
+  # candidate variable, pre-selecting the ones the default model kept. Month
+  # dummies and the squared year term are collapsed back to their formula form
+  # ("factor(month)", "year_cent^2") so the selection round-trips correctly.
+  observeEvent(first_model(),
                {
-                 req(acs_data())
                  variables_used <- names(first_model()$coefficients) #first model
 
-                 if (is.null(gas())){
+                 if (is.null(acs_data())){
+                   all_vars <- c("[VRM]" = "log_vrm",
+                                 "[Month]" = "factor(month)",
+                                 "[Year]" = "year_cent",
+                                 "[Year Squared]" = "year_cent^2",
+                                 addnl_vars())
+                 } else if (is.null(gas())){
                    all_vars <- c("[VRM]" = "log_vrm",
                                  "[Month]" = "factor(month)",
                                  "[Year]" = "year_cent",
@@ -1187,41 +1259,6 @@ app_server <- function(input, output, session){
                                  "[Adult Base Fare]" = "log_fare",
                                  addnl_vars())
                  }
-
-
-                 if (TRUE %in% grepl("month",variables_used)){
-                   new_selected <- c(variables_used[grepl("month",variables_used) == FALSE], "factor(month)")
-                 } else{
-                   new_selected <- variables_used
-                 }
-                 if (TRUE %in% grepl("year_cent^2",new_selected,fixed = TRUE)){
-                   new_selected <- c(new_selected[grepl("year_cent^2",new_selected,fixed = TRUE) == FALSE], "year_cent^2")
-                 }
-
-                 new_vars <- all_vars[all_vars %in% new_selected]
-
-                 # updateSelectizeInput(inputId = "variables",
-                 #                      choices = new_vars,
-                 #                      selected = new_vars)
-
-                 updateSelectizeInput(inputId = "variables_forced",
-                                      choices = all_vars,
-                                      selected = new_vars)
-
-               })
-
-  # If no acs_data (i.e. they choose to skip that step)
-  # populate the variable picker on tab 4 with every
-  # candidate variable, pre-selecting the ones the default model kept.
-  observeEvent(first_model(),
-               {
-                 variables_used <- names(first_model()$coefficients) #first model
-
-                 all_vars <- c("[VRM]" = "log_vrm",
-                               "[Month]" = "factor(month)",
-                               "[Year]" = "year_cent",
-                               "[Year Squared]" = "year_cent^2",
-                               addnl_vars())
 
                  if (TRUE %in% grepl("month",variables_used)){
                    new_selected <- c(variables_used[grepl("month",variables_used) == FALSE], "factor(month)")
