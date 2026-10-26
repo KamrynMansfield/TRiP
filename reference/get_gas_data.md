@@ -10,6 +10,7 @@ get_gas_data(
   start_year,
   end_month,
   end_year,
+  api_key,
   region = "NUS",
   product = "EPM0"
 )
@@ -33,10 +34,14 @@ get_gas_data(
 
   integer, e.g. 2024
 
+- api_key:
+
+  character, your EIA API key
+
 - region:
 
-  EIA duoarea code, e.g. "NUS" (U.S. avg), "R10"-"R50" (PADDs), or a
-  state-level code. Defaults to U.S. average.
+  EIA duoarea code, e.g. "NUS" (U.S. avg) or "R10"-"R50" (PADDs),
+  Defaults to U.S. average.
 
 - product:
 
@@ -45,4 +50,4 @@ get_gas_data(
 
 ## Value
 
-tibble with columns: gas_price, month, year, region
+tibble with columns: gas_price, month, year

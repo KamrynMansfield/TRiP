@@ -46,6 +46,7 @@
 <span>  <span class="va">start_year</span>,</span>
 <span>  <span class="va">end_month</span>,</span>
 <span>  <span class="va">end_year</span>,</span>
+<span>  <span class="va">api_key</span>,</span>
 <span>  region <span class="op">=</span> <span class="st">"NUS"</span>,</span>
 <span>  product <span class="op">=</span> <span class="st">"EPM0"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -71,9 +72,13 @@
 <dd><p>integer, e.g. 2024</p></dd>
 
 
+<dt id="arg-api-key">api_key<a class="anchor" aria-label="anchor" href="#arg-api-key"></a></dt>
+<dd><p>character, your EIA API key</p></dd>
+
+
 <dt id="arg-region">region<a class="anchor" aria-label="anchor" href="#arg-region"></a></dt>
-<dd><p>EIA duoarea code, e.g. "NUS" (U.S. avg), "R10"-"R50" (PADDs),
-or a state-level code. Defaults to U.S. average.</p></dd>
+<dd><p>EIA duoarea code, e.g. "NUS" (U.S. avg) or "R10"-"R50" (PADDs),
+Defaults to U.S. average.</p></dd>
 
 
 <dt id="arg-product">product<a class="anchor" aria-label="anchor" href="#arg-product"></a></dt>
@@ -83,7 +88,7 @@ or a state-level code. Defaults to U.S. average.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>tibble with columns: gas_price, month, year, region</p>
+    <p>tibble with columns: gas_price, month, year</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
