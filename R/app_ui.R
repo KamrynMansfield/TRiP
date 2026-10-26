@@ -45,6 +45,18 @@ app_ui <- function() {
     selected = "pan_1",
     theme = bslib::bs_theme(),
 
+    # This JavaScript snippet should warn people before they refresh/close the page
+    tags$head(
+      tags$script(HTML("
+      window.addEventListener('beforeunload', function (e) {
+        // Cancel the event as stated by the standard.
+        e.preventDefault();
+        // Chrome requires returnValue to be set.
+        e.returnValue = '';
+      });
+    "))
+    ),
+
     # Custom CSS for the amber warning box on the Screening tab. The classes
     # defined here are applied in the renderUI() for output$textWarn1.
     tags$head(
