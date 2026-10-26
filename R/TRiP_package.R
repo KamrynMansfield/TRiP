@@ -35,14 +35,14 @@
 #' @importFrom dplyr join_by left_join mutate n pull recode rowwise select
 #' @importFrom dplyr summarise summarize ungroup
 #' @importFrom tidyr expand_grid pivot_longer pivot_wider
-#' @importFrom tibble tibble
+#' @importFrom tibble tibble as_tibble
 #' @importFrom stringr str_pad str_sub
 #' @importFrom zoo na.approx na.locf
 #' @importFrom jsonlite fromJSON
 #' @importFrom purrr map_chr
 #'
 #' API Retrieval
-#' @importFrom eia eia_data eia_set_key
+#' @importFrom httr GET warn_for_status content
 #'
 #' Dates
 #' @importFrom lubridate interval month months time_length year years ym ymd my

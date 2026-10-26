@@ -51,10 +51,8 @@ app_server <- function(input, output, session){
     }
   )
 
-  # TODO: uncomment once posit connect cloud is working
-  # # get the gas api key working
-  # api_key <- Sys.getenv("EIA_API_KEY")
-  # eia::eia_set_key(api_key)
+  # get the gas api key working
+  api_key <- Sys.getenv("EIA_API_KEY")
 
   #### 1. SCREENING ####
 
@@ -634,28 +632,29 @@ app_server <- function(input, output, session){
   # TODO: posit connect cloud fails when trhing to load in eia package.
   #       Once I fix that, I need to uncomment this code and change some of the
   #       "gas" varaibles in this file to "gas()"
-  #  using the counties to get regional gas data
-  # gas <- reactive({
-  #   req(county_sf)
-  #
-  #   df <- processed_data()
-  #   start_year <- min(df$year)
-  #   start_month <- df$month[df$year == start_year] |>
-  #     min()
-  #
-  #   end_year <- max(df$year)
-  #   end_month <- df$month[df$year == end_year] |>
-  #     max()
-  #
-  #   reg_code <- get_eia_region_code(county_sf())
-  #
-  #   get_gas_data(start_month,
-  #                start_year,
-  #                end_month,
-  #                end_year,
-  #                region = reg_code,
-  #                product = "EPM0")
-  # })
+  # using the counties to get regional gas data
+  gas <- reactive({
+    req(county_sf)
+
+    df <- processed_data()
+    start_year <- min(df$year)
+    start_month <- df$month[df$year == start_year] |>
+      min()
+
+    end_year <- max(df$year)
+    end_month <- df$month[df$year == end_year] |>
+      max()
+
+    reg_code <- get_eia_region_code(county_sf())
+
+    get_gas_data(start_month,
+                 start_year,
+                 end_month,
+                 end_year,
+                 api_key,
+                 region = reg_code,
+                 product = "EPM0")
+  })
 
   # once someone uploads the gtfs,
   # On a successful upload, draw the map and reveal the API key input and the
@@ -976,7 +975,27 @@ app_server <- function(input, output, session){
                 "[Bus Rapid Transit]" = "brt",
                 "[Adult Base Fare]" = "log_fare",
                 addnl_vars())
-    } else {
+    } else if (is.null(gas())){
+      acs <- acs_data()
+      vars <- c("[VRM]" = "log_vrm",
+                "[Month]" = "factor(month)",
+                "[Year]" = "year_cent",
+                "[Year Squared]" = "year_cent^2",
+                # "[Total Workers]" = "workers_16_over",
+                "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
+                "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
+                "[% Commuting by Car]" = "log_perc_car",
+                "[% Commuting by Taxi]" = "log_perc_taxicab",
+                "[% Work From Home]" = "log_perc_wfh",
+                "[% Female Workers]" = "log_perc_female",
+                "[% Workers Between 100-150% of Federal Povery Level]" = "log_fpl_100_150",
+                "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
+                "[Labor Participation Rate]" = "log_labor_part_rate",
+                "[Unemployment Rate]" = "log_unemp_rate",
+                "[Bus Rapid Transit]" = "brt",
+                "[Adult Base Fare]" = "log_fare",
+                addnl_vars())
+    } else{
       acs <- acs_data()
       vars <- c("[VRM]" = "log_vrm",
                 "[Month]" = "factor(month)",
@@ -998,6 +1017,7 @@ app_server <- function(input, output, session){
                 "[Adult Base Fare]" = "log_fare",
                 addnl_vars())
     }
+
     # acs <- acs_data
     xl_data <- processed_data()
     fare_tbl <- fare_tbl()
@@ -1005,7 +1025,7 @@ app_server <- function(input, output, session){
 
     mod <- create_regression_model(data_xlsx = xl_data,
                             acs_data = acs,
-                            gas_data = gas,
+                            gas_data = gas(),
                             variables = vars,
                             fare_df = fare_tbl) # TODO: this doesn't seem to be working
 
@@ -1020,7 +1040,7 @@ app_server <- function(input, output, session){
 
       mod <- create_regression_model_forced(data_xlsx = xl_data,
                                      acs_data = acs,
-                                     gas_data = gas,
+                                     gas_data = gas(),
                                      variables = vars,
                                      fare_df = fare_tbl)
     }
@@ -1129,23 +1149,78 @@ app_server <- function(input, output, session){
                  req(acs_data())
                  variables_used <- names(first_model()$coefficients) #first model
 
+                 if (is.null(gas())){
+                   all_vars <- c("[VRM]" = "log_vrm",
+                                 "[Month]" = "factor(month)",
+                                 "[Year]" = "year_cent",
+                                 "[Year Squared]" = "year_cent^2",
+                                 "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
+                                 "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
+                                 "[% Commuting by Car]" = "log_perc_car",
+                                 "[% Commuting by Taxi]" = "log_perc_taxicab",
+                                 "[% Work From Home]" = "log_perc_wfh",
+                                 "[% Female Workers]" = "log_perc_female",
+                                 "[% Workers Between 100-150% of Federal Povery Level]" = "log_fpl_100_150",
+                                 "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
+                                 "[Labor Participation Rate]" = "log_labor_part_rate",
+                                 "[Unemployment Rate]" = "log_unemp_rate",
+                                 "[Bus Rapid Transit]" = "brt",
+                                 "[Adult Base Fare]" = "log_fare",
+                                 addnl_vars())
+                 } else{
+                   all_vars <- c("[VRM]" = "log_vrm",
+                                 "[Month]" = "factor(month)",
+                                 "[Year]" = "year_cent",
+                                 "[Year Squared]" = "year_cent^2",
+                                 "[Gas Price]" = "log_gas_price",
+                                 "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
+                                 "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
+                                 "[% Commuting by Car]" = "log_perc_car",
+                                 "[% Commuting by Taxi]" = "log_perc_taxicab",
+                                 "[% Work From Home]" = "log_perc_wfh",
+                                 "[% Female Workers]" = "log_perc_female",
+                                 "[% Workers Between 100-150% of Federal Povery Level]" = "log_fpl_100_150",
+                                 "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
+                                 "[Labor Participation Rate]" = "log_labor_part_rate",
+                                 "[Unemployment Rate]" = "log_unemp_rate",
+                                 "[Bus Rapid Transit]" = "brt",
+                                 "[Adult Base Fare]" = "log_fare",
+                                 addnl_vars())
+                 }
+
+
+                 if (TRUE %in% grepl("month",variables_used)){
+                   new_selected <- c(variables_used[grepl("month",variables_used) == FALSE], "factor(month)")
+                 } else{
+                   new_selected <- variables_used
+                 }
+                 if (TRUE %in% grepl("year_cent^2",new_selected,fixed = TRUE)){
+                   new_selected <- c(new_selected[grepl("year_cent^2",new_selected,fixed = TRUE) == FALSE], "year_cent^2")
+                 }
+
+                 new_vars <- all_vars[all_vars %in% new_selected]
+
+                 # updateSelectizeInput(inputId = "variables",
+                 #                      choices = new_vars,
+                 #                      selected = new_vars)
+
+                 updateSelectizeInput(inputId = "variables_forced",
+                                      choices = all_vars,
+                                      selected = new_vars)
+
+               })
+
+  # If no acs_data (i.e. they choose to skip that step)
+  # populate the variable picker on tab 4 with every
+  # candidate variable, pre-selecting the ones the default model kept.
+  observeEvent(first_model(),
+               {
+                 variables_used <- names(first_model()$coefficients) #first model
+
                  all_vars <- c("[VRM]" = "log_vrm",
                                "[Month]" = "factor(month)",
                                "[Year]" = "year_cent",
                                "[Year Squared]" = "year_cent^2",
-                               "[Gas Price]" = "log_gas_price",
-                               "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
-                               "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
-                               "[% Commuting by Car]" = "log_perc_car",
-                               "[% Commuting by Taxi]" = "log_perc_taxicab",
-                               "[% Work From Home]" = "log_perc_wfh",
-                               "[% Female Workers]" = "log_perc_female",
-                               "[% Workers Between 100-150% of Federal Povery Level]" = "log_fpl_100_150",
-                               "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
-                               "[Labor Participation Rate]" = "log_labor_part_rate",
-                               "[Unemployment Rate]" = "log_unemp_rate",
-                               "[Bus Rapid Transit]" = "brt",
-                               "[Adult Base Fare]" = "log_fare",
                                addnl_vars())
 
                  if (TRUE %in% grepl("month",variables_used)){
@@ -1210,7 +1285,7 @@ app_server <- function(input, output, session){
 
                  mod <- create_regression_model_forced(data_xlsx = processed_data(),
                                                        acs_data = acs_data(),
-                                                       gas_data = gas,
+                                                       gas_data = gas(),
                                                        variables = input$variables_forced,
                                                        fare_df = fare_tbl())
                  model_forced(mod)
@@ -1870,7 +1945,7 @@ app_server <- function(input, output, session){
         df_unfiltered <- forecast_ridership(coefs = coefs,
                                             data_xlsx = processed_data,
                                             acs_data = acs,
-                                            gas_data = gas,
+                                            gas_data = gas(),
                                             scenario_inputs_df = scenario_df,
                                             start_year = NULL,
                                             start_month = NULL,

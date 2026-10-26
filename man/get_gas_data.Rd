@@ -9,6 +9,7 @@ get_gas_data(
   start_year,
   end_month,
   end_year,
+  api_key,
   region = "NUS",
   product = "EPM0"
 )
@@ -22,14 +23,16 @@ get_gas_data(
 
 \item{end_year}{integer, e.g. 2024}
 
-\item{region}{EIA duoarea code, e.g. "NUS" (U.S. avg), "R10"-"R50" (PADDs),
-or a state-level code. Defaults to U.S. average.}
+\item{api_key}{character, your EIA API key}
+
+\item{region}{EIA duoarea code, e.g. "NUS" (U.S. avg) or "R10"-"R50" (PADDs),
+Defaults to U.S. average.}
 
 \item{product}{EIA product code: "EPMR" = regular grade, "EPMM" = midgrade,
 "EPMP" = premium, "EPM0" = all grades. Defaults to all_grades.}
 }
 \value{
-tibble with columns: gas_price, month, year, region
+tibble with columns: gas_price, month, year
 }
 \description{
 See \href{https://www.eia.gov/opendata/}{EIA Open Data} page for more info.

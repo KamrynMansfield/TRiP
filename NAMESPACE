@@ -63,10 +63,6 @@ importFrom(dplyr,
   summarize,
   ungroup
 )
-importFrom(eia,
-  eia_data,
-  eia_set_key
-)
 importFrom(fixest,
   feols,
   fixef,
@@ -95,6 +91,11 @@ importFrom(gt,
   gt_output,
   render_gt,
   tab_style
+)
+importFrom(httr,
+  GET,
+  content,
+  warn_for_status
 )
 importFrom(jsonlite,fromJSON)
 importFrom(leaflet,
@@ -145,7 +146,10 @@ importFrom(stringr,
   str_pad,
   str_sub
 )
-importFrom(tibble,tibble)
+importFrom(tibble,
+  as_tibble,
+  tibble
+)
 importFrom(tidycensus,
   census_api_key,
   get_acs
