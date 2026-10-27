@@ -15,6 +15,7 @@ The most recent year the ACS 5-year estimates
 ## Examples
 
 ``` r
+if (FALSE) { # \dontrun{
 get_max_acs_year()
-#> [1] 2024
+} # }
 ```
