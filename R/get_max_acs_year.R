@@ -4,7 +4,9 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' get_max_acs_year()
+#' }
 get_max_acs_year <- function(){
   # Get all available Census API endpoints
   census_api_discovery <- fromJSON("https://api.census.gov/data.json")

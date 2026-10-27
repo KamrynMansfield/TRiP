@@ -13,5 +13,7 @@ The most recent year the ACS 5-year estimates
 Find most recently available year for ACS 5-year annual estimates
 }
 \examples{
+\dontrun{
 get_max_acs_year()
+}
 }

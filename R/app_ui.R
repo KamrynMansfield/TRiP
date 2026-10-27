@@ -173,7 +173,7 @@ app_ui <- function() {
             ),
             conditionalPanel(
               condition = "input.has_fare_changes === 'yes'",
-              h5("Inputing Changes to Adult Base Fare"),
+              h5("Inputting Changes to Adult Base Fare"),
               div(
                 style = "display:flex; gap:.5rem; flex-wrap:wrap;",
                 dateInput("new_date", "Date of change", width = "150px",
@@ -201,7 +201,7 @@ app_ui <- function() {
           area = "area1",
           card_body(
             "Upload a properly formatted excel file with monthly weekday Unlinked Passenger Trips (UPT) and Vehicle Revenue Miles (VRM) for each route.",
-            "(see example below for data format) \n",
+            "(see example below for data format)",
             "Due to unusual ridership patterns during the COVID19 pandemic, it is recommended that your data not go back past the year 2023.",
             # .xlsx only; parsed and validated by the processed_data() reactive
             fileInput("upload_data", "",
@@ -218,9 +218,9 @@ app_ui <- function() {
             "The column names must match exactly.",
             "If you have routes classified as Bus Rapid Transit, you may optionally add a brt column.",
             "The values in the route_id column must match the route id in the GTFS files.",
-            "If you have you own variables you would also like to model, you may add columns that contain positive integers. The model
-          will take the natural logarithm of any added variables, so, if you add any variables,
-          just list actual values and avoid putting 'log' in the column name."
+            "If you have your own variables you would also like to model, you may add columns that contain positive integers. The model
+          will transform any added variables using the natural logarithm. Therefore, if you add any variables,
+            list actual values (not transformed values) and avoid putting 'log' in the column name."
           )
         )
       )
@@ -256,7 +256,7 @@ app_ui <- function() {
           area = "area1",
           card_header("Route Data Upload"),
           card_body(
-            "Upload your agency's GTFS zip file",
+            "Upload your agency's GTFS zip file.",
             actionLink("skip_gtfs", "Skip this step"),
             # GTFS zip; route_id values here must match those in the ridership file
             fileInput("upload_routes","GTFS Upload", accept = ".zip"),
@@ -315,7 +315,7 @@ app_ui <- function() {
               available to put in the model (see below for variable descriptions). The pre-selected variables
               are those belonging to the default model.
               You may click the selection pane to update which variables you want to test in the model.
-              Note that VRM, Month, and Year variables are require to be selected.
+              Note that VRM, Month, and Year variables are required to be selected.
               Once you have selected variables you want to see in the model, click the Create New Model Button.
 
               **Compare Models:** The most recent model you created will be
@@ -329,7 +329,7 @@ app_ui <- function() {
 
               ***How to interpret the models:*** *A positive coefficient means an increase or presence of the
               variable is associated with an increase in UPT. A negative coefficient means an increase or presence of the
-              variable is associated with an decrease in UPT. The magnitude of the coefficient
+              variable is associated with a decrease in UPT. The magnitude of the coefficient
               indicates how much effect the variable has on the UPT.*
 
               ***Note:*** *To produce the default model, the app creates a large
@@ -341,11 +341,13 @@ app_ui <- function() {
 
               ***Provided by Agency***
 
-              - *VRM (required in model):*
+              - *Vehicle Revenue Miles (required in model)*
 
               - *Month (required in model)*
 
               - *Year (required in model)*
+
+              - *BRT Designation (optional)*
 
               - *Additional variables uploaded by agency (optional)*
 
@@ -355,15 +357,15 @@ app_ui <- function() {
 
               - *Total workers 16 years and over (American Community Survey)*
 
-              - *Number of workers working from home (American Community Survey)*
+              - *Percent of workers working from home (American Community Survey)*
 
-              - *Number of workers commuting by taxicab, motorcycle or other means (American Community Survey)*
+              - *Percent of workers commuting by taxicab, motorcycle or other means (American Community Survey)*
 
-              - *Number of workers commuting by car (American Community Survey)*
+              - *Percent of workers commuting by car (American Community Survey)*
 
-              - *Number of households with no vehicle available (American Community Survey)*
+              - *Percent of households with no vehicle available (American Community Survey)*
 
-              - *Number of workers with no vehicle available (American Community Survey)*
+              - *Percent of workers with no vehicle available (American Community Survey)*
 
               - *Percent of workers who are below 100 percent of the poverty level (American Community Survey)*
 
@@ -371,9 +373,7 @@ app_ui <- function() {
 
               - *Percent of workers who are female (American Community Survey)*
 
-              - *Percent workers in households in renter-occupied housing units (American Community Survey)*
-
-              - *Total population per census tract (American Community Survey)*
+              - *Percent of workers in renter-occupied housing units (American Community Survey)*
 
               - *Labor force participation rate per census tract (American Community Survey)*
 
@@ -568,7 +568,7 @@ app_ui <- function() {
 
           In many cases, the same set of scenarios will apply to all the routes, but there are
           some cases where individual routes will have different scenarios
-          (e.g. you know one route will double it's service but the rest will stay the same).
+          (e.g. you know one route will double its service but the rest will stay the same).
 
           In the case where all your routes have the same scenarios, you can select *All remaining routes* and click save.
           This will save the same scenario estimates for each route.
@@ -578,7 +578,7 @@ app_ui <- function() {
 
           **Existing Routes Overwrite:** You may overwrite any of the saved routes if you need to make adjustments.
           Note that some users first create general scenarios and apply it to each route.
-          Then they go back and overwrite the few routes that have different estiamtes.
+          Then they go back and overwrite the few routes that have different estimates.
                    ")
           )
         ),

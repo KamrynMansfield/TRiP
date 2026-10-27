@@ -34,6 +34,10 @@ plot_forecast <- function(forecast_df, route = "all_routes", scale = "average"){
     plot_title <- paste("Unlinked Passenger Trips (UPT) Forecast - Route:", route)
   }
 
+  # reorder scenario factor so legend/line order is High, Medium, Low, Observed
+  forecast_df <- forecast_df |>
+    mutate(scenario = factor(scenario, levels = c("High", "Medium", "Low", "Observed")))
+
   # the two branches differ only in which y variable and axis label they use
   if(scale == "average"){
     forecast_df |>

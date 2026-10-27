@@ -79,19 +79,6 @@
 #'   month across all three scenarios so the forecast lines connect cleanly to
 #'   the observed line when plotted.
 #'
-#' @section Argument mismatches worth checking:
-#' Same two issues flagged in [create_regression_model_forced()]:
-#' `app_server()` calls this with `gas_data = gas` while the formal here is
-#' `gas_data` (an "unused argument" error), and the call to
-#' `make_model_data_frame()` below passes five arguments to a four-argument
-#' function by adding `brt_df`. Flagged rather than fixed.
-#'
-#' @section BRT coefficient naming:
-#' The BRT coefficient is looked up as `"brt"` here, but because `brt` is a
-#' logical column the model reports it as `"brtTRUE"` (which is the name
-#' [check_coefficients()] uses). If the BRT factor ever comes back as exactly 1
-#' when it shouldn't, this naming mismatch is the first place to look.
-#'
 #' @keywords internal
 #' @noRd
 forecast_ridership <- function(coefs,
@@ -116,7 +103,7 @@ forecast_ridership <- function(coefs,
 
   # the true elasticities: everything except the seasonality dummies, the time
   # trend terms, and the three variables that were never log transformed
-  elasticities <- coefs[!grepl("factor\\(month\\)|year_cent|workers_16_over|median_earnings|emp_pop_ratio", names(coefs))]
+  elasticities <- coefs[!grepl("factor\\(month\\)|year_cent|median_earnings|emp_pop_ratio", names(coefs))]
 
   # display label -> model variable lookup, used to recode the scenario table
   elast_names <- get_elasticity_variables(coefs)

@@ -75,14 +75,16 @@ create_regression_model <- function(data_xlsx,
     # get vector of p-values
     pvals <- lm_vrm$coeftable[,"Pr(>|t|)"]
 
-    # remove month values
-    pvals <- pvals[grepl("month",names(pvals)) == FALSE]
+    if ("[Month]" %in% names(candidate_variables)){
+      # remove month values
+      pvals <- pvals[grepl("month",names(pvals)) == FALSE]
 
-    # run a wald test to get a p-value representing joint significance for all months
-    wald_test <- fixest::wald(lm_vrm, keep = "factor\\(month\\)", print = FALSE)
+      # run a wald test to get a p-value representing joint significance for all months
+      wald_test <- fixest::wald(lm_vrm, keep = "factor\\(month\\)", print = FALSE)
 
-    # add new month p-value
-    pvals <- c(pvals, `factor(month)` = wald_test$p)
+      # add new month p-value
+      pvals <- c(pvals, `factor(month)` = wald_test$p)
+    }
 
     # get the max p-value
     max_p <- max(pvals, na.rm = TRUE)

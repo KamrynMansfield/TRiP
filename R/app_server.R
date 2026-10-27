@@ -37,19 +37,53 @@
 #' @export
 app_server <- function(input, output, session){
 
+  # showNotification("Checking Census website",
+  #                  type = "message",
+  #                  duration = 5)
+  #
+  # # when the app loads, check to see if the census website is up and running
+  # res <- tryCatch(
+  #   httr::HEAD("https://www.census.gov", httr::timeout(5)),
+  #   error = function(e) NULL
+  # )
+  # census_works <- !is.null(res) && httr::status_code(res) < 400
+  #
+  # if(census_works == FALSE){
+  #   showModal(
+  #     modalDialog(
+  #       title = "ERROR",
+  #       easy_close = TRUE,
+  #       "census doesn't work"
+  #     )
+  #   )
+  # } else{
+  #   showNotification("census works!",
+  #                    type = "message",
+  #                    duration = 2)
+  # }
+
+
+  census_works <- TRUE
+
   # getting the max acs year available to be used in later functions.
-  # defaults to 2024 if for some reason it can connect to the api
-  max_acs_year <- tryCatch(
-    {
-      get_max_acs_year()        # Successful return value
-    },
-    warning = function(w) {
-      return(2024)                  # Value to return if warning happens
-    },
-    error = function(e) {
-      return(2024)                    # Value to return if error happens
-    }
-  )
+  # defaults to 2024 if for some reason it cannot connect to the api
+  if (census_works){
+    max_acs_year <- tryCatch(
+      {
+        get_max_acs_year()
+      },
+      warning = function(w) {
+        message("get_max_acs_year() warning: ", conditionMessage(w), " -- defaulting to 2024")
+        2024
+      },
+      error = function(e) {
+        message("get_max_acs_year() failed: ", conditionMessage(e), " -- defaulting to 2024")
+        2024
+      }
+    )
+  } else{
+    max_acs_year <- 2024
+  }
 
   # get the gas api key working
   api_key <- Sys.getenv("EIA_API_KEY")
@@ -172,6 +206,27 @@ app_server <- function(input, output, session){
     if (is_xlsx){
       df <- read_excel(path)
 
+      # count rows of original df to know how many were dropped due to NA values
+      old_count <- nrow(df)
+
+      # delete any rows that don't have a month or year value
+      df <- df |>
+        dplyr::filter(!is.na(year)) |>
+        dplyr::filter(!is.na(month))
+
+      deleted <- old_count - nrow(df)
+
+      # warn user that rows were removed
+      if (deleted == 1){
+        showNotification(paste(deleted, "row removed due to missing month or year values"),
+                         type = "message",
+                         duration = 2)
+      } else if (deleted > 0){
+        showNotification(paste(deleted, "rows removed due to missing month or year values"),
+                         type = "message",
+                         duration = 2)
+      }
+
       numeric_vec <- tryCatch(
         {
           as.numeric(df$route_id)
@@ -190,8 +245,6 @@ app_server <- function(input, output, session){
         df <- df |>
           arrange(route_id)
       }
-
-      return(df)
     } else{
       showModal(
         modalDialog(
@@ -202,10 +255,11 @@ app_server <- function(input, output, session){
       )
       return(NULL)
     }
+
     # TODO: Also throw an error if there there are missing values that might
     # cause the app to crash. (maybe missing route_IDs? Look into Marcus's email)
 
-
+    return(df)
   })
 
   # checking to make sure the data is formatted correctly
@@ -225,8 +279,6 @@ app_server <- function(input, output, session){
   # Validation 2: can every column except route_id be coerced to numeric?
   # tryCatch traps the coercion warning that as.numeric() raises on text, which
   # is what makes a bad column detectable.
-  # NOTE: names(df) != c("route_id") compares a vector to a length-1 vector and
-  # relies on recycling; it works here but `!= "route_id"` is the safer form.
   check_numeric <- reactive({
     req(processed_data())
     df <- processed_data()
@@ -284,10 +336,37 @@ app_server <- function(input, output, session){
     check_numeric <- check_numeric()
     check_log <- check_log()
 
-    df <- processed_data() |>
-      mutate(f_date = my(paste0(month,"-",year)))
 
-    lowest_year <- min(df$f_date) |> year()
+    df <- processed_data()
+
+    # if the columns are numbers, I want to check to see if the lowest year is
+    # higher than the ACS data available. If so, it will give a warning
+    # if columns are not numbers, then it will through a different warning later
+    if (check_numeric){
+
+      lowest_year <- min(df$year, na.rm = T)
+
+      if(check_names & (lowest_year > max_acs_year)){
+        # warning message if the data years are greater than the available ACS data years
+        w_message <- paste0("The earliest your data in this file are from the year ",
+                            lowest_year,
+                            ", but the census data is only current until ",
+                            max_acs_year,
+                            ". If you choose to continue with this data, note that the census data will be extrapolated from previous years and may not be as accurate.")
+        showModal(
+          modalDialog(
+            title = "WARNING",
+            easy_close = TRUE,
+            w_message
+          )
+        )
+
+        output$rider_data_next_placeholder <- renderUI({
+          input_task_button("rider_data_next", "Continue")
+        })
+      }
+    }
+
 
     if (check_names == FALSE & check_numeric == FALSE & check_log == FALSE){
       showModal(
@@ -366,25 +445,6 @@ app_server <- function(input, output, session){
       output$rider_data_next_placeholder <- renderUI({
         em("*Upload a compatible file to continue")
       })
-    } else if(check_numeric & check_names & (lowest_year > max_acs_year)) {
-      w_message <- paste0("The earliest your data in this file are from the year ",
-                          lowest_year,
-                          ", but the census data is only current until ",
-                          max_acs_year,
-                          ". If you choose to continue with this data, note that the census data will be extrapolated from previous years and may not be as accurate.")
-      showModal(
-        modalDialog(
-          title = "WARNING",
-          easy_close = TRUE,
-          w_message
-        )
-      )
-
-      output$rider_data_next_placeholder <- renderUI({
-        input_task_button("rider_data_next", "Continue")
-      })
-
-
     } else if(check_numeric & check_names){
       # maybe I should put another notification saying the file looks good
       # showNotification("File Received and Processed",
@@ -396,7 +456,7 @@ app_server <- function(input, output, session){
       })
 
     } else{
-      showNotification("ERROR: There was an unknown error with your file. Please double check to make sure it follows the correct formatting",
+      showNotification("ERROR: There was an unknown error with your file. Please double check to make sure it follows the correct formatting.",
                        type = "error",
                        duration = 15)
       output$rider_data_next_placeholder <- renderUI({
@@ -420,7 +480,7 @@ app_server <- function(input, output, session){
     req(processed_data())
     df <- processed_data()
 
-    extra_variables <- names(df)[!names(df) %in% c("route_id","month","year","upt","vrm")]
+    extra_variables <- names(df)[!names(df) %in% c("route_id","month","year","upt","vrm", "brt")]
 
     if (length(extra_variables) > 0){
       addnl_vars <- paste0("log_",extra_variables)
@@ -629,12 +689,9 @@ app_server <- function(input, output, session){
     find_overlapping_counties(route_sf())
   })
 
-  # TODO: posit connect cloud fails when trhing to load in eia package.
-  #       Once I fix that, I need to uncomment this code and change some of the
-  #       "gas" varaibles in this file to "gas()"
   # using the counties to get regional gas data
   gas <- reactive({
-    req(county_sf)
+    req(county_sf())
 
     df <- processed_data()
     start_year <- min(df$year)
@@ -671,7 +728,7 @@ app_server <- function(input, output, session){
       markdown("
       Your transit routes and the counties they cross are displayed to the right.
       If these are the routes and counties you expected, you are ready for the next step.
-      Input your Census API key to get census data.
+      Input your census API key to get census data.
 
       Need an API key? [click here](https://api.census.gov/data/key_signup.html)
                ")
@@ -705,7 +762,7 @@ app_server <- function(input, output, session){
         modalDialog(
           title = "ERROR",
           easy_close = TRUE,
-          "Unable to process file. Make sure it is a valid GTFS formatted file."
+          "Unable to process file. Make sure it is a valid GTFS-formatted file."
         )
       )
 
@@ -736,10 +793,12 @@ app_server <- function(input, output, session){
     req(nzchar(k))
 
     # validate with a cheap call before accepting it
-    test <- tryCatch(
+    test <- tryCatch({
+      setTimeLimit(cpu = 10, elapsed = 10, transient = TRUE)
       tidycensus::get_acs(geography = "state", variables = "B01003_001",
-                          year = 2022, state = "TN", key = k),
-      error = function(e) e
+                          year = 2022, state = "TN", key = k)
+      }, error = function(e) e,
+      finally = setTimeLimit()
     )
 
     if (inherits(test, "error")) {
@@ -762,7 +821,7 @@ app_server <- function(input, output, session){
         modalDialog(
           title = "ERROR",
           easy_close = TRUE,
-          "It looks like you have not uploaded your riderhsip data. Can not retrieve census data without riderhsip data."
+          "It looks like you have not uploaded your ridership data. Cannot retrieve census data without ridership data."
         )
       )
 
@@ -772,7 +831,7 @@ app_server <- function(input, output, session){
         modalDialog(
           title = "ERROR",
           easy_close = TRUE,
-          "It looks like there is something wrong with your ridership data. Can not retrieve census data without proper riderhsip data"
+          "It looks like there is something wrong with your ridership data. Cannot retrieve census data without proper ridership data."
         )
       )
     }
@@ -981,14 +1040,15 @@ app_server <- function(input, output, session){
                 "[Month]" = "factor(month)",
                 "[Year]" = "year_cent",
                 "[Year Squared]" = "year_cent^2",
-                # "[Total Workers]" = "workers_16_over",
+                "[Total Workers]" = "log_workers_16_over",
+                # "[Total Population]" = "log_population", # removed because it is collinear with total_workers
                 "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
                 "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
                 "[% Commuting by Car]" = "log_perc_car",
                 "[% Commuting by Taxi]" = "log_perc_taxicab",
                 "[% Work From Home]" = "log_perc_wfh",
                 "[% Female Workers]" = "log_perc_female",
-                "[% Workers Between 100-150% of Federal Povery Level]" = "log_fpl_100_150",
+                "[% Workers Between 100-150% of Federal Poverty Level]" = "log_fpl_100_150",
                 "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
                 "[Labor Participation Rate]" = "log_labor_part_rate",
                 "[Unemployment Rate]" = "log_unemp_rate",
@@ -1001,15 +1061,16 @@ app_server <- function(input, output, session){
                 "[Month]" = "factor(month)",
                 "[Year]" = "year_cent",
                 "[Year Squared]" = "year_cent^2",
-                # "[Total Workers]" = "workers_16_over",
+                # "[Total Population]" = "log_population", # removed because it is collinear with total_workers
                 "[Gas Price]" = "log_gas_price",
+                "[Total Workers]" = "log_workers_16_over",
                 "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
                 "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
                 "[% Commuting by Car]" = "log_perc_car",
                 "[% Commuting by Taxi]" = "log_perc_taxicab",
                 "[% Work From Home]" = "log_perc_wfh",
                 "[% Female Workers]" = "log_perc_female",
-                "[% Workers Between 100-150% of Federal Povery Level]" = "log_fpl_100_150",
+                "[% Workers Between 100-150% of Federal Poverty Level]" = "log_fpl_100_150",
                 "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
                 "[Labor Participation Rate]" = "log_labor_part_rate",
                 "[Unemployment Rate]" = "log_unemp_rate",
@@ -1072,17 +1133,18 @@ app_server <- function(input, output, session){
                   "Year" = "year_cent",
                   "Year Squared" = "I(year_cent^2)",
                   "Gas Price" = "log_gas_price",
+                  "Total Workers" = "log_workers_16_over",
                   "% No Vehicle Households" = "log_perc_hshlds_noveh",
                   "% Workers Below Federal Poverty Line" = "log_below_fpl",
                   "% Commuting by Car" = "log_perc_car",
                   "% Commuting by Taxi" = "log_perc_taxicab",
                   "% Work From Home" = "log_perc_wfh",
                   "% Female Workers" = "log_perc_female",
-                  "% Workers Between 100-150% of Federal Povery Level" = "log_fpl_100_150",
+                  "% Workers Between 100-150% of Federal Poverty Level" = "log_fpl_100_150",
                   "% Workers in Renter Occupied Housing Units" = "log_perc_renter_occupied",
                   "Labor Participation Rate" = "log_labor_part_rate",
                   "Unemployment Rate" = "log_unemp_rate",
-                  "Is Bus Rapid Transit" = "brtTRUE",
+                  "Is Bus Rapid Transit" = "brt",
                   "Fare" = "log_fare",
                   addnl_vars())
 
@@ -1139,73 +1201,6 @@ app_server <- function(input, output, session){
   # table is re-rendered rather than patched.
   proxy <- dataTableProxy("tbl_mod_stepwise")
 
-  # once acs is uploaded, then it will update the selections for the model creation on the next page
-  # Once ACS data exists, populate the variable picker on tab 4 with every
-  # candidate variable, pre-selecting the ones the default model kept. Month
-  # dummies and the squared year term are collapsed back to their formula form
-  # ("factor(month)", "year_cent^2") so the selection round-trips correctly.
-  # observeEvent(acs_data(),
-  #              {
-  #                req(acs_data())
-  #                variables_used <- names(first_model()$coefficients) #first model
-  #
-  #                if (is.null(gas())){
-  #                  all_vars <- c("[VRM]" = "log_vrm",
-  #                                "[Month]" = "factor(month)",
-  #                                "[Year]" = "year_cent",
-  #                                "[Year Squared]" = "year_cent^2",
-  #                                "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
-  #                                "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
-  #                                "[% Commuting by Car]" = "log_perc_car",
-  #                                "[% Commuting by Taxi]" = "log_perc_taxicab",
-  #                                "[% Work From Home]" = "log_perc_wfh",
-  #                                "[% Female Workers]" = "log_perc_female",
-  #                                "[% Workers Between 100-150% of Federal Povery Level]" = "log_fpl_100_150",
-  #                                "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
-  #                                "[Labor Participation Rate]" = "log_labor_part_rate",
-  #                                "[Unemployment Rate]" = "log_unemp_rate",
-  #                                "[Bus Rapid Transit]" = "brt",
-  #                                "[Adult Base Fare]" = "log_fare",
-  #                                addnl_vars())
-  #                } else{
-  #                  all_vars <- c("[VRM]" = "log_vrm",
-  #                                "[Month]" = "factor(month)",
-  #                                "[Year]" = "year_cent",
-  #                                "[Year Squared]" = "year_cent^2",
-  #                                "[Gas Price]" = "log_gas_price",
-  #                                "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
-  #                                "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
-  #                                "[% Commuting by Car]" = "log_perc_car",
-  #                                "[% Commuting by Taxi]" = "log_perc_taxicab",
-  #                                "[% Work From Home]" = "log_perc_wfh",
-  #                                "[% Female Workers]" = "log_perc_female",
-  #                                "[% Workers Between 100-150% of Federal Povery Level]" = "log_fpl_100_150",
-  #                                "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
-  #                                "[Labor Participation Rate]" = "log_labor_part_rate",
-  #                                "[Unemployment Rate]" = "log_unemp_rate",
-  #                                "[Bus Rapid Transit]" = "brt",
-  #                                "[Adult Base Fare]" = "log_fare",
-  #                                addnl_vars())
-  #                }
-  #
-  #
-  #                if (TRUE %in% grepl("month",variables_used)){
-  #                  new_selected <- c(variables_used[grepl("month",variables_used) == FALSE], "factor(month)")
-  #                } else{
-  #                  new_selected <- variables_used
-  #                }
-  #                if (TRUE %in% grepl("year_cent^2",new_selected,fixed = TRUE)){
-  #                  new_selected <- c(new_selected[grepl("year_cent^2",new_selected,fixed = TRUE) == FALSE], "year_cent^2")
-  #                }
-  #
-  #                new_vars <- all_vars[all_vars %in% new_selected]
-  #
-  #
-  #                updateSelectizeInput(inputId = "variables_forced",
-  #                                     choices = all_vars,
-  #                                     selected = new_vars)
-  #
-  #              })
 
   # Once the first model is made, populate the variable picker on tab 4 with every
   # candidate variable, pre-selecting the ones the default model kept. Month
@@ -1220,24 +1215,26 @@ app_server <- function(input, output, session){
                                  "[Month]" = "factor(month)",
                                  "[Year]" = "year_cent",
                                  "[Year Squared]" = "year_cent^2",
+                                 "[Bus Rapid Transit]" = "brt",
                                  addnl_vars())
                  } else if (is.null(gas())){
                    all_vars <- c("[VRM]" = "log_vrm",
                                  "[Month]" = "factor(month)",
                                  "[Year]" = "year_cent",
                                  "[Year Squared]" = "year_cent^2",
+                                 "[Total Workers]" = "log_workers_16_over",
+                                 # "[Total Population]" = "log_population", # removed because it is collinear with total_workers
                                  "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
                                  "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
                                  "[% Commuting by Car]" = "log_perc_car",
                                  "[% Commuting by Taxi]" = "log_perc_taxicab",
                                  "[% Work From Home]" = "log_perc_wfh",
                                  "[% Female Workers]" = "log_perc_female",
-                                 "[% Workers Between 100-150% of Federal Povery Level]" = "log_fpl_100_150",
+                                 "[% Workers Between 100-150% of Federal Poverty Level]" = "log_fpl_100_150",
                                  "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
                                  "[Labor Participation Rate]" = "log_labor_part_rate",
                                  "[Unemployment Rate]" = "log_unemp_rate",
                                  "[Bus Rapid Transit]" = "brt",
-                                 "[Adult Base Fare]" = "log_fare",
                                  addnl_vars())
                  } else{
                    all_vars <- c("[VRM]" = "log_vrm",
@@ -1245,19 +1242,24 @@ app_server <- function(input, output, session){
                                  "[Year]" = "year_cent",
                                  "[Year Squared]" = "year_cent^2",
                                  "[Gas Price]" = "log_gas_price",
+                                 "[Total Workers]" = "log_workers_16_over",
+                                 # "[Total Population]" = "log_population", # removed because it is collinear with total_workers
                                  "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
                                  "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
                                  "[% Commuting by Car]" = "log_perc_car",
                                  "[% Commuting by Taxi]" = "log_perc_taxicab",
                                  "[% Work From Home]" = "log_perc_wfh",
                                  "[% Female Workers]" = "log_perc_female",
-                                 "[% Workers Between 100-150% of Federal Povery Level]" = "log_fpl_100_150",
+                                 "[% Workers Between 100-150% of Federal Poverty Level]" = "log_fpl_100_150",
                                  "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
                                  "[Labor Participation Rate]" = "log_labor_part_rate",
                                  "[Unemployment Rate]" = "log_unemp_rate",
                                  "[Bus Rapid Transit]" = "brt",
-                                 "[Adult Base Fare]" = "log_fare",
                                  addnl_vars())
+                 }
+
+                 if (!is.null(fare_tbl())){
+                   all_vars <- c(all_vars, "[Adult Base Fare]" = "log_fare")
                  }
 
                  if (TRUE %in% grepl("month",variables_used)){
@@ -1352,17 +1354,18 @@ app_server <- function(input, output, session){
                   "Year" = "year_cent",
                   "Year Squared" = "I(year_cent^2)",
                   "Gas Price" = "log_gas_price",
+                  "Total Workers" = "log_workers_16_over",
                   "% No Vehicle Households" = "log_perc_hshlds_noveh",
                   "% Workers Below Federal Poverty Line" = "log_below_fpl",
                   "% Commuting by Car" = "log_perc_car",
                   "% Commuting by Taxi" = "log_perc_taxicab",
                   "% Work From Home" = "log_perc_wfh",
                   "% Female Workers" = "log_perc_female",
-                  "% Workers Between 100-150% of Federal Povery Level" = "log_fpl_100_150",
+                  "% Workers Between 100-150% of Federal Poverty Level" = "log_fpl_100_150",
                   "% Workers in Renter Occupied Housing Units" = "log_perc_renter_occupied",
                   "Labor Participation Rate" = "log_labor_part_rate",
                   "Unemployment Rate" = "log_unemp_rate",
-                  "Is Bus Rapid Transit" = "brtTRUE",
+                  "Is Bus Rapid Transit" = "brt",
                   "Fare" = "log_fare",
                   addnl_vars())
 
@@ -1899,6 +1902,8 @@ app_server <- function(input, output, session){
 
   #### RUNNING FORECASTS ####
 
+  missing_forecasts <- reactiveVal(NULL)
+
   # The forecast run. Routes that share identical Low/Mid/High assumptions are
   # grouped and forecast together (one call per distinct assumption set rather
   # than one per route), then the results are filtered back down to the routes
@@ -1962,63 +1967,95 @@ app_server <- function(input, output, session){
       left_join(grouped_routes, by = join_by(Route))
 
 
-    if (length(unique(saved_predictions$Route)) == length(routes)){ # TODO: I think I should make it so that it will work even if they don't make a prediction for all the routes
-      forecast_dfs <- list()
-      for (group_id in unique(grouped_predictions$route_group_id)){
-        filtered_grouped_predictions <- grouped_predictions |>
-          filter(route_group_id == group_id)
+    if (length(unique(saved_predictions$Route)) < length(routes)){ # TODO: I think I should make it so that it will work even if they don't make a prediction for all the routes
+      num_predicted_routes <- length(unique(saved_predictions$Route))
+      num_total_routes <- length(routes)
+      missing_routes <- paste(routes[!routes %in% unique(saved_predictions$Route)], collapse = ", ")
+      msg <- paste0("Only ",num_predicted_routes, "/",num_total_routes," routes with scenarios.",
+                    " Missing scenarios for the following routes: ",
+                    missing_routes)
+      showModal(modalDialog(
+        title = "Missing Scenarios",
+        msg,
+        footer = tagList(
+          modalButton("Back to scenario editor"),
+          actionButton("confirm_forecast", "Forecast for current routes only", class = "btn-primary")
+        )
+      ))
 
-        one_route_in_group <- filtered_grouped_predictions$Route[[1]]
+      missing_forecasts(TRUE)
+    } else{
+      missing_forecasts(NULL)
+    }
 
-        scenario_df <- grouped_predictions |>
-          filter(Route == one_route_in_group)
+    # #delete below if it works
+    # if (length(unique(saved_predictions$Route)) == length(routes)){ # TODO: I think I should make it so that it will work even if they don't make a prediction for all the routes
+    #
+    # } else{
+    #   final_df <- NULL
+    # }
+    #TODO: delete above if it works
 
-        if (input$select_1_or_5 == "one"){
-          fiveyear <- FALSE
-        } else{
-          fiveyear <- TRUE
-        }
+    forecast_dfs <- list()
+    for (group_id in unique(grouped_predictions$route_group_id)){
+      filtered_grouped_predictions <- grouped_predictions |>
+        filter(route_group_id == group_id)
 
-        df_unfiltered <- forecast_ridership(coefs = coefs,
-                                            data_xlsx = processed_data,
-                                            acs_data = acs,
-                                            gas_data = gas(),
-                                            scenario_inputs_df = scenario_df,
-                                            start_year = NULL,
-                                            start_month = NULL,
-                                            # brt_df = brt_tbl(),
-                                            five_year = fiveyear)
+      one_route_in_group <- filtered_grouped_predictions$Route[[1]]
 
+      scenario_df <- grouped_predictions |>
+        filter(Route == one_route_in_group)
 
-        df <- df_unfiltered |>
-          filter(route_id %in% unique(filtered_grouped_predictions$Route))
-
-        forecast_dfs[[as.character(group_id)]] <- df
+      if (input$select_1_or_5 == "one"){
+        fiveyear <- FALSE
+      } else{
+        fiveyear <- TRUE
       }
 
-      final_df <- bind_rows(forecast_dfs)
-
-      # system-wide totals, recomputed after the per-group forecasts are stacked
-      df_all_routes <- final_df |>
-        summarize(route_id = "all_routes",
-                  avg_daily_upt = sum(avg_daily_upt, na.rm = T),
-                  tot_weekday_upt = sum(tot_weekday_upt, na.rm = T),
-                  .by = c(year, month, scenario)) |>
-        mutate(date = ym(paste(year, month,sep = "/")))
-
-      final_df <- bind_rows(final_df, df_all_routes)
+      df_unfiltered <- forecast_ridership(coefs = coefs,
+                                          data_xlsx = processed_data,
+                                          acs_data = acs,
+                                          gas_data = gas(),
+                                          scenario_inputs_df = scenario_df,
+                                          start_year = NULL,
+                                          start_month = NULL,
+                                          # brt_df = brt_tbl(),
+                                          five_year = fiveyear)
 
 
-    } else{
-      final_df <- NULL
+      df <- df_unfiltered |>
+        filter(route_id %in% unique(filtered_grouped_predictions$Route))
+
+      forecast_dfs[[as.character(group_id)]] <- df
     }
+
+    final_df <- bind_rows(forecast_dfs)
+
+    # system-wide totals, recomputed after the per-group forecasts are stacked
+    df_all_routes <- final_df |>
+      summarize(route_id = "all_routes",
+                avg_daily_upt = sum(avg_daily_upt, na.rm = T),
+                tot_weekday_upt = sum(tot_weekday_upt, na.rm = T),
+                .by = c(year, month, scenario)) |>
+      mutate(date = ym(paste(year, month,sep = "/")))
+
+    final_df <- bind_rows(final_df, df_all_routes)
 
     final_df
 
   })
 
-  # Advances to the Visualization tab.
-  observeEvent(input$buttonRun, {
+  # Advances to the Visualization tab if all the routes have a forecast
+  observeEvent(forecast_df(), {
+    if (is.null(missing_forecasts())){
+      bslib::nav_select("main_nav", "pan_7")
+    }
+  })
+
+  # Advances to the Visualization tab if they confirm they are ok with
+  # not forecasting everything
+  observeEvent(input$confirm_forecast, {
+    removeModal()
     bslib::nav_select("main_nav", "pan_7")
   })
 
@@ -2094,7 +2131,7 @@ app_server <- function(input, output, session){
   # Handle the csv download
   output$download_csv <- downloadHandler(
     filename = function() {
-      paste("TRiP-forcasted-data-", Sys.Date(), ".csv", sep = "")
+      paste("TRiP-forecasted-data-", Sys.Date(), ".csv", sep = "")
     },
     content = function(file) {
       write.csv(output_df(), file, row.names = FALSE)
@@ -2104,7 +2141,7 @@ app_server <- function(input, output, session){
   # Handle the xlsx download
   output$download_xlsx <- downloadHandler(
     filename = function() {
-      paste("TRiP-forcasted-data-", Sys.Date(), ".xlsx", sep = "")
+      paste("TRiP-forecasted-data-", Sys.Date(), ".xlsx", sep = "")
     },
     content = function(file) {
       write_xlsx(output_df(), file)

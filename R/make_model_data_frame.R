@@ -118,14 +118,14 @@ make_model_data_frame <- function(data_xlsx,
     mutate(upt_avg = upt/weekdays_in_month)
 
   #' list variables to be log transformed
-  #' three variables not log transformed: "workers_16_over", "median_earnings", "emp_pop_ratio"
-  vars_to_log <- c("upt", "upt_avg", "vrm", "gas_price", "perc_car", "perc_taxicab", "perc_wfh", "perc_female", "below_fpl", "fpl_100_150", "perc_renter_occupied", "population", "labor_part_rate", "unemp_rate", "perc_hshlds_noveh")
+  #' three variables not log transformed: "median_earnings", "emp_pop_ratio"
+  vars_to_log <- c("upt", "upt_avg", "vrm", "gas_price",  "workers_16_over", "perc_car", "perc_taxicab", "perc_wfh", "perc_female", "below_fpl", "fpl_100_150", "perc_renter_occupied", "population", "labor_part_rate", "unemp_rate", "perc_hshlds_noveh")
 
   # add any variables from the vrm_data
   # anything the agency added beyond the five required columns is treated as a
   # candidate predictor and logged too (this is why the app rejects uploads with
   # "log_" in a column name and requires extra columns to be numeric)
-  extra_vars <- names(data)[!names(data) %in% c("route_id","month","year","upt","vrm")]
+  extra_vars <- names(data)[!names(data) %in% c("route_id","month","year","upt","vrm", "brt")]
   vars_to_log <- c(vars_to_log, extra_vars)
 
   # log transform vars_to_log variables
@@ -137,7 +137,7 @@ make_model_data_frame <- function(data_xlsx,
       ~ if_else(. > 0, log(.), NA_real_),   # safely take log only if positive
       .names = "log_{.col}"          # rename: log_variable
     )) %>%
-    select(-any_of(vars_to_log))
+    select(-any_of(c(vars_to_log)))
 
   # add fares column
 
@@ -174,7 +174,7 @@ make_model_data_frame <- function(data_xlsx,
 
   # if the agency didn't supply a brt column, assume no route is BRT
   if (is.null(df_all_log$brt)){
-    df_all_log$brt <- FALSE
+    df_all_log$brt <- 0
   }
 
   return(df_all_log)
