@@ -148,7 +148,7 @@ app_server <- function(input, output, session){
     if (screening_result()$has_warnings) {
       bslib::input_task_button(
         "screening_button",
-        "Continue Anyways",
+        "Continue Anyway",
         class = "btn-warning"
       )
     } else {
@@ -255,9 +255,6 @@ app_server <- function(input, output, session){
       )
       return(NULL)
     }
-
-    # TODO: Also throw an error if there there are missing values that might
-    # cause the app to crash. (maybe missing route_IDs? Look into Marcus's email)
 
     return(df)
   })
@@ -459,6 +456,85 @@ app_server <- function(input, output, session){
       showNotification("ERROR: There was an unknown error with your file. Please double check to make sure it follows the correct formatting.",
                        type = "error",
                        duration = 15)
+      output$rider_data_next_placeholder <- renderUI({
+        em("*Upload a compatible file to continue")
+      })
+    }
+
+  }) |>
+    bindEvent(processed_data())
+
+  # TODO: this pretty much works, unless the year rows are not numeric
+  # send some warning messages if the dates dont work
+  observe({
+    req(processed_data())
+
+    df <- processed_data()
+
+    non_num_df <- df$year
+    num_df <- as.numeric(non_num_df)
+
+    can_be_numeric <- sum(is.na(non_num_df)) == sum(is.na(num_df))
+
+    req(can_be_numeric == TRUE)
+
+
+    # Get some information about the years in the data
+    data_years <- unique(df$year) # all unique values in year column
+    min_data_year <- min(data_years) # min year
+    max_data_year <- max(data_years) # max year
+    data_span <- min_data_year:max_data_year # span of years that data represents
+    # check data years against the span of years to make sure it's not missing data
+    data_missing_years <- length(data_years) < length(data_span)
+
+    if (data_missing_years){
+      showModal(
+        modalDialog(
+          title = "WARNING",
+          easy_close = TRUE,
+          "It appears your data has some missing years. If that was not your intention, you may be missing some data."
+        )
+      )
+      output$rider_data_next_placeholder <- renderUI({
+        input_task_button("rider_data_next", "Continue")
+      })
+    }
+
+    # Get the current year to create an acceptable range of
+    # years that they can have in the data
+    # (the data can't contain a year that hasn't happened or
+    # a year from before 2009 when acs 5-year summaries started)
+    current_year <- lubridate::today() |>
+      lubridate::year()
+    lowest_year <- 2009
+
+    # is there a year that is higher than the acceptable years? (i.e. a year that hasn't happened yet)
+    has_future_year <- sum(data_years > current_year) > 0
+    # is there a year that is too old in the data
+    has_old_year <- sum(data_years < lowest_year) > 0
+
+    # give an error message if their data is outside of the acceptable years
+    if (has_future_year){
+      showModal(
+        modalDialog(
+          title = "ERROR",
+          easy_close = TRUE,
+          "It appears your data has some missing years. If that was not your intention, you may be missing some data."
+        )
+      )
+      output$rider_data_next_placeholder <- renderUI({
+        em("*Upload a compatible file to continue")
+      })
+    }
+
+    if (has_old_year){
+      showModal(
+        modalDialog(
+          title = "ERROR",
+          easy_close = TRUE,
+          "Your data goes further back than the available census data. Please remove any data from before 2009."
+        )
+      )
       output$rider_data_next_placeholder <- renderUI({
         em("*Upload a compatible file to continue")
       })
@@ -1152,12 +1228,12 @@ app_server <- function(input, output, session){
                             "vars" = unname(name_key))
 
     coef_table <- data.frame("vars" = names(created_model$coefficients),
-                             "Coeff" = round(created_model$coefficients,3),
+                             "Coef" = round(created_model$coefficients,3),
                              "P.value" = round(fixest::pvalue(created_model), 3))
 
     table <- coef_table |>
       left_join(var_table, by = "vars") |>
-      select("Variable", "Coeff", "P.value")
+      select("Variable", "Coef", "P.value")
 
     table <- table |>
       mutate(pval = P.value) |>
@@ -1171,7 +1247,7 @@ app_server <- function(input, output, session){
 
     table |>
       # left_join(var_table, by = "vars") |>
-      select("Variable", "Coeff", "P.value", "pval") |>
+      select("Variable", "Coef", "P.value", "pval") |>
       gt() |>
       # when it is above 10% threshold
       tab_style(
@@ -1373,7 +1449,7 @@ app_server <- function(input, output, session){
                             "vars" = unname(name_key))
 
     coef_table <- data.frame("vars" = names(created_model$coefficients),
-                             "Coeff" = round(created_model$coefficients,3),
+                             "Coef" = round(created_model$coefficients,3),
                              "P.value" = round(fixest::pvalue(created_model), 3))
 
 
@@ -1389,7 +1465,7 @@ app_server <- function(input, output, session){
 
     coef_table |>
       left_join(var_table, by = "vars") |>
-      select("Variable", "Coeff", "P.value", "pval") |>
+      select("Variable", "Coef", "P.value", "pval") |>
       gt() |>
       # when it is above 10% threshold
       tab_style(
@@ -1898,6 +1974,11 @@ app_server <- function(input, output, session){
               rownames = FALSE)
   })
 
+
+  # Clear saved scenarios so user can start over if they wish
+  observeEvent(input$delete_scenarios, {
+    saved$by_route <- NULL
+  })
 
 
   #### RUNNING FORECASTS ####

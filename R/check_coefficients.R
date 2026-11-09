@@ -69,13 +69,13 @@ check_coefficients <- function(model, extra_vars){
   # and the message shown to the user. Variables absent from this table are
   # never flagged. Note brtTRUE appears twice (once per sign) so that BRT always
   # draws a warning about its thin sample regardless of which way it points.
-  sign_df <- matrix(c("log_vrm", "positive", "error", "The VRM coefficient must be positive.",
+  sign_df <- matrix(c("log_vrm", "positive", "error", "The VRM coefficient must be positive. Please select the common coefficient value.",
                       "log_gas_price", "positive", "warning", "Positive sign expected, use best judgement",
                       "log_perc_hshlds_noveh", "positive", "warning", "Positive sign expected, use best judgement",
                       "log_perc_car", "positive", "warning", "Positive sign expected, use best judgement",
                       "log_perc_wfh", "positive", "warning", "Positive sign expected, use best judgement",
-                      "brtTRUE",  "positive", "warning", "Because so few routes are BRT, this may not be as statistically significant as the p-value lets on. Use best judgement",
-                      "brtTRUE",  "negative", "warning", "Because so few routes are BRT, this may not be as statistically significant as the p-value lets on. Use best judgement",
+                      "brt",  "positive", "warning", "Because so few routes are BRT, this may not be as statistically significant as the p-value lets on. Use best judgement",
+                      "brt",  "negative", "warning", "Because so few routes are BRT, this may not be as statistically significant as the p-value lets on. Use best judgement",
                       "log_fare", "negative", "warning", "Negative sign expected, use best judgement"),
                     byrow = T, ncol = 4) |>
     as.data.frame()
@@ -89,10 +89,10 @@ check_coefficients <- function(model, extra_vars){
   # coefs <- c(log_perc_car = -.45, log_vrm = -.5) # This is just to check my code
 
   coef_df <- data.frame(variable = names(coefs),
-                        coeff = round(coefs,3)) |>
+                        coef = round(coefs,3)) |>
     # attach the expectation (NA for variables we have no prior about)
     left_join(sign_df, by = "variable") |>
-    mutate(actual_sign = ifelse(coeff >= 0, "positive","negative")) |>
+    mutate(actual_sign = ifelse(coef >= 0, "positive","negative")) |>
     mutate(sign_check = case_when(
       is.na(expected_sign) ~ "sign_ok",           # no expectation on file
       expected_sign == actual_sign ~ "sign_ok",   # matches expectation
@@ -108,10 +108,10 @@ check_coefficients <- function(model, extra_vars){
   # Message column is dropped to keep the table narrow
   if(length(unique(coef_df$new_message)) == 1){
     coef_df <- coef_df |>
-      select("Variable" = variable_name, "Coeff" = coeff, sign_check)
+      select("Variable" = variable_name, "Coef" = coef, sign_check)
   } else{
     coef_df <- coef_df |>
-      select("Variable" = variable_name, "Coeff" = coeff,"Message" = new_message, sign_check)
+      select("Variable" = variable_name, "Coef" = coef,"Message" = new_message, sign_check)
   }
 
   coef_df |>
