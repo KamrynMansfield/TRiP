@@ -72,6 +72,7 @@ check_coefficients <- function(model, extra_vars){
   sign_df <- matrix(c("log_vrm", "positive", "error", "The VRM coefficient must be positive. Please select the common coefficient value.",
                       "log_gas_price", "positive", "warning", "Positive sign expected, use best judgement",
                       "log_perc_hshlds_noveh", "positive", "warning", "Positive sign expected, use best judgement",
+                      "log_workers_16_over", "positive","warning","Positive sign expected, use best judgement",
                       "log_perc_car", "positive", "warning", "Positive sign expected, use best judgement",
                       "log_perc_wfh", "positive", "warning", "Positive sign expected, use best judgement",
                       "brt",  "positive", "warning", "Because so few routes are BRT, this may not be as statistically significant as the p-value lets on. Use best judgement",

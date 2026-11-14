@@ -193,6 +193,9 @@ app_server <- function(input, output, session){
 
   #### 2. RIDERSHIP DATA UPLOAD ####
 
+  # acs data reactive value that is mainly updated in step 3
+  acs_data <- reactiveVal(NULL)
+
   # Read and modify the uploaded data
   # Parses the uploaded .xlsx. Route IDs are coerced to numeric when they
   # convert cleanly, purely so routes sort in a sensible order (2 before 10)
@@ -202,9 +205,15 @@ app_server <- function(input, output, session){
     req(input$upload_data) # Ensure a file is uploaded
     path <- input$upload_data$datapath
     is_xlsx <- grepl("\\.xlsx$", tolower(path))
+    is_csv <- grepl("\\.csv$", tolower(path))
 
-    if (is_xlsx){
-      df <- read_excel(path)
+    if (is_xlsx | is_csv){
+      if (is_xlsx){
+        df <- read_excel(path)
+      } else{
+        df <- read_csv(path)
+      }
+
 
       # count rows of original df to know how many were dropped due to NA values
       old_count <- nrow(df)
@@ -220,11 +229,11 @@ app_server <- function(input, output, session){
       if (deleted == 1){
         showNotification(paste(deleted, "row removed due to missing month or year values"),
                          type = "message",
-                         duration = 2)
+                         duration = 4)
       } else if (deleted > 0){
         showNotification(paste(deleted, "rows removed due to missing month or year values"),
                          type = "message",
-                         duration = 2)
+                         duration = 4)
       }
 
       numeric_vec <- tryCatch(
@@ -250,7 +259,7 @@ app_server <- function(input, output, session){
         modalDialog(
           title = "ERROR",
           easy_close = TRUE,
-          "File must be an excel file (.xlsx)"
+          "File must be an excel file (.xlsx) or a comma separated file (.csv)"
         )
       )
       return(NULL)
@@ -258,6 +267,7 @@ app_server <- function(input, output, session){
 
     return(df)
   })
+
 
   # checking to make sure the data is formatted correctly
   # Validation 1: are all five required columns present and spelled correctly?
@@ -332,7 +342,6 @@ app_server <- function(input, output, session){
     check_names <- check_names()
     check_numeric <- check_numeric()
     check_log <- check_log()
-
 
     df <- processed_data()
 
@@ -464,7 +473,9 @@ app_server <- function(input, output, session){
   }) |>
     bindEvent(processed_data())
 
-  # TODO: this pretty much works, unless the year rows are not numeric
+
+
+  # TODO: add a warning if the months are greater than 12
   # send some warning messages if the dates dont work
   observe({
     req(processed_data())
@@ -547,6 +558,90 @@ app_server <- function(input, output, session){
     bslib::nav_select("main_nav", "pan_3")
   }) |>
     bindEvent(input$rider_data_next)
+
+
+  # TODO
+  # I have kind of done this, but I think I need a better way of checking
+  # from the beginning to see if the ridership data matches the gtfs data
+  # maybe like this
+  #   - is their already acs data uploaded?
+  #   - if yes, does it match the ridership data?
+  #       - propper years
+  #       - propper route_id
+  #       - (warnings would be given for missing data saying they must skip or redo census retrieval)
+
+  # TODO: If new data is input, there are some things I need to do
+  observeEvent(processed_data(), {
+
+    # clear the scenario df
+    saved$by_route <- NULL
+
+    # erase the previously selected model.
+    selected_model(NULL)
+
+    # erase the previously created model.
+    model_forced(NULL)
+
+    # make it like they haven't skipped it before
+    skipped(NULL)
+
+    # make it so users can't select
+    updateSelectizeInput(inputId = "variables_forced",
+                         choices = c("[VRM]" = "log_vrm"),
+                         selected = c("[VRM]" = "log_vrm"))
+
+    if (is.null(acs_data())){
+      # ok to make model
+      return()
+    } else{
+      # we need to check to see if the acs data matches the ridership data
+      # assing both the acs data and the ridership data to variables
+      df_acs <- acs_data()
+      df_ridership <- processed_data()
+
+      # see if the routes have the same names
+      route_name_check <- all(unique(df_ridership$route_id) %in% unique(df_acs$route_id))
+
+      # see if the acs years match the ridership years
+      years_acs <- lubridate::year(df_acs$date) |>
+        unique()
+      years_ridership <- unique(df_ridership$year)
+
+      matching_year_check <- all(years_ridership %in% years_acs)
+
+      # if the route names don't match, they need a new gtfs file, but
+      # if only the years don't match, then they might be able to keep the gtfs file and just get new census data
+      if (route_name_check == FALSE){
+        showModal(
+          modalDialog(
+            title = "WARNING",
+            easy_close = TRUE,
+            "The new data you input is not compatible with your existing census data.
+          The model will not work unless you upload a matching gtfs file and
+            retrieve new census data in the next step."
+          )
+        )
+        acs_data(NULL)
+        return()
+      } else if (route_name_check == TRUE & matching_year_check == FALSE){
+        showModal(
+          modalDialog(
+            title = "WARNING",
+            easy_close = TRUE,
+            "The new data you input is not compatible with your existing census data.
+          The model will not work unless you retrieve new census data in the next step."
+          )
+        )
+        acs_data(NULL)
+        return()
+      } else{
+        return()
+      }
+
+    }
+
+
+  })
 
   # Any column beyond the five required ones is treated as a user-supplied
   # predictor. Returns a named vector mapping the original column name to its
@@ -856,15 +951,15 @@ app_server <- function(input, output, session){
   # inside a progress bar.
   ##### GET AND PREPARE CENSUS DATA #####
 
-  acs_data <- reactiveVal(NULL)
-
   key_rv <- reactiveVal(NULL)
 
   # Validates the key with one cheap, known-good query before accepting it, so
   # a typo is caught here rather than midway through the expensive pull.
   # also creates a variable showing the validation to use in a later check
   api_is_valid <- reactiveVal(NULL)
+  observe({ print(api_is_valid()) })
   observeEvent(input$submit_key, {
+
     k <- trimws(input$api_key)
     req(nzchar(k))
 
@@ -910,6 +1005,7 @@ app_server <- function(input, output, session){
           "It looks like there is something wrong with your ridership data. Cannot retrieve census data without proper ridership data."
         )
       )
+      return()
     }
 
 
@@ -918,9 +1014,10 @@ app_server <- function(input, output, session){
         modalDialog(
           title = "ERROR",
           easy_close = TRUE,
-          "You must input a valid census API key before retrieving data. You can get a free API key on the census website. https://api.census.gov/data/key_signup.html"
+          "You must submit your API key before retrieving census data."
         )
       )
+      return()
     } else if (api_is_valid() == FALSE){
       showModal(
         modalDialog(
@@ -929,7 +1026,9 @@ app_server <- function(input, output, session){
           "You must input a valid census API key before retrieving data. You can get a free API key on the census website. https://api.census.gov/data/key_signup.html"
         )
       )
+      return()
     }
+
 
     # The spreadsheet and the GTFS feed must name routes identically, otherwise
     # the ACS data could never be joined to ridership. Block if they disagree.
@@ -1087,6 +1186,7 @@ app_server <- function(input, output, session){
   observeEvent(input$confirm_skip, {
     removeModal()
     skipped(TRUE)
+    acs_data(NULL)
     bslib::nav_select("main_nav", "pan_4")
   })
 
@@ -1158,13 +1258,14 @@ app_server <- function(input, output, session){
     # acs <- acs_data
     xl_data <- processed_data()
     fare_tbl <- fare_tbl()
+    gas <- gas()
 
 
     mod <- create_regression_model(data_xlsx = xl_data,
                             acs_data = acs,
-                            gas_data = gas(),
+                            gas_data = gas,
                             variables = vars,
-                            fare_df = fare_tbl) # TODO: this doesn't seem to be working
+                            fare_df = fare_tbl)
 
     if (!"log_vrm" %in% names(mod$coefficients)){
       variables_used <- c(names(mod$coefficients), "log_vrm")
@@ -2069,14 +2170,6 @@ app_server <- function(input, output, session){
       missing_forecasts(NULL)
     }
 
-    # #delete below if it works
-    # if (length(unique(saved_predictions$Route)) == length(routes)){ # TODO: I think I should make it so that it will work even if they don't make a prediction for all the routes
-    #
-    # } else{
-    #   final_df <- NULL
-    # }
-    #TODO: delete above if it works
-
     forecast_dfs <- list()
     for (group_id in unique(grouped_predictions$route_group_id)){
       filtered_grouped_predictions <- grouped_predictions |>
@@ -2143,13 +2236,45 @@ app_server <- function(input, output, session){
 
   #### 7. VISUALIZATION PAGE ####
 
+  # observeEvent(input$save_route_scenario, {
+  #
+  #   req(df)
+  # })
+
   observeEvent(input$buttonRun, {
     req(forecast_df())
+
+    # If possible, get routes as numbers to arrange
+    # the routes in numerical order
     df <- forecast_df()
+
+    # get the unique routes
+    unique_routes <- unique(df$route_id)
+
+    # convert routes to numeric. If they aren't numeric, they will become NA
+    routes_as_numeric <- unique_routes |>
+      as.numeric() |>
+      suppressWarnings()
+
+    # list which routes can't be converted to numeric
+    na_routes <- unique_routes[which(is.na(routes_as_numeric))]
+
+    # put the numbers in order
+    routes_as_numeric <- routes_as_numeric |>
+      sort()
+
+    # TODO: I haven't tested this yet
+    if (length(na_routes) == 1 & "all_routes" %in% na_routes){
+      route_choices <- c("all_routes", routes_as_numeric)
+    } else{
+      route_names <- unique_routes[!unique_routes %in% "all_routes"]
+      route_choices <- c("all_routes", route_names)
+    }
+
     updateSelectInput(
       session, "input_route_to_plot",
-      choices = unique(df$route_id),
-      selected = unique(df$route_id)[1]
+      choices = route_choices,
+      selected = "all_routes"
     )
   }, ignoreInit = TRUE)
 
