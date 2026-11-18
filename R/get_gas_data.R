@@ -21,6 +21,23 @@ get_gas_data <- function(start_month,
                          region = "NUS",
                          product = "EPM0") {
 
+  # check to see if the api can be accessed
+  test_url <- "https://api.eia.gov/v2/petroleum/pri/gnd/data/"
+
+  resp <- tryCatch(
+    GET(test_url,
+        query = list(
+          api_key = api_key,
+          frequency = "weekly",
+          `data[0]` = "value",
+          length = 1
+        ),
+        timeout(timeout_sec)),
+    error = function(e) NULL
+  )
+
+  if (is.null(resp)) return(NULL)
+
   # EIA expects YYYY-MM formatted start/end dates
   start_date <- sprintf("%04d-%02d", start_year, start_month)
   end_date   <- sprintf("%04d-%02d", end_year, end_month)
