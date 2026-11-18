@@ -133,25 +133,6 @@ the next year. When <code>FALSE</code> (the default), it will only run a 1-year 
 month across all three scenarios so the forecast lines connect cleanly to
 the observed line when plotted.</p>
     </div>
-    <div class="section level2">
-    <h2 id="argument-mismatches-worth-checking">Argument mismatches worth checking<a class="anchor" aria-label="anchor" href="#argument-mismatches-worth-checking"></a></h2>
-
-
-<p>Same two issues flagged in <code>create_regression_model_forced()</code>:
-<code><a href="app_server.html">app_server()</a></code> calls this with <code>gas_data = gas</code> while the formal here is
-<code>gas_data</code> (an "unused argument" error), and the call to
-<code><a href="make_model_data_frame.html">make_model_data_frame()</a></code> below passes five arguments to a four-argument
-function by adding <code>brt_df</code>. Flagged rather than fixed.</p>
-    </div>
-    <div class="section level2">
-    <h2 id="brt-coefficient-naming">BRT coefficient naming<a class="anchor" aria-label="anchor" href="#brt-coefficient-naming"></a></h2>
-
-
-<p>The BRT coefficient is looked up as <code>"brt"</code> here, but because <code>brt</code> is a
-logical column the model reports it as <code>"brtTRUE"</code> (which is the name
-<code><a href="check_coefficients.html">check_coefficients()</a></code> uses). If the BRT factor ever comes back as exactly 1
-when it shouldn't, this naming mismatch is the first place to look.</p>
-    </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

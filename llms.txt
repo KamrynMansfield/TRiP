@@ -49,6 +49,8 @@ Details of the coding behind the app.
 
 ## All functions
 
+- [`census_api_up()`](https://kamrynmansfield.github.io/TRiP/reference/census_api_up.md)
+  : Check if census API is working
 - [`check_coefficients()`](https://kamrynmansfield.github.io/TRiP/reference/check_coefficients.md)
   : Check model coefficient reasonableness
 - [`combine_acs_data()`](https://kamrynmansfield.github.io/TRiP/reference/combine_acs_data.md)

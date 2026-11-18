@@ -85,21 +85,3 @@ A data frame combining observed history and forecast, with columns
 `"all_routes"` route that sums every route, and duplicates the reference
 month across all three scenarios so the forecast lines connect cleanly
 to the observed line when plotted.
-
-## Argument mismatches worth checking
-
-Same two issues flagged in `create_regression_model_forced()`:
-[`app_server()`](https://kamrynmansfield.github.io/TRiP/reference/app_server.md)
-calls this with `gas_data = gas` while the formal here is `gas_data` (an
-"unused argument" error), and the call to
-[`make_model_data_frame()`](https://kamrynmansfield.github.io/TRiP/reference/make_model_data_frame.md)
-below passes five arguments to a four-argument function by adding
-`brt_df`. Flagged rather than fixed.
-
-## BRT coefficient naming
-
-The BRT coefficient is looked up as `"brt"` here, but because `brt` is a
-logical column the model reports it as `"brtTRUE"` (which is the name
-[`check_coefficients()`](https://kamrynmansfield.github.io/TRiP/reference/check_coefficients.md)
-uses). If the BRT factor ever comes back as exactly 1 when it shouldn't,
-this naming mismatch is the first place to look.
