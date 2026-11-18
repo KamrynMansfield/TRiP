@@ -42,7 +42,7 @@
 #' @importFrom purrr map_chr
 #'
 #' API Retrieval
-#' @importFrom httr GET warn_for_status content HEAD timeout
+#' @importFrom httr GET warn_for_status content HEAD timeout status_code
 #'
 #' Dates
 #' @importFrom lubridate interval month months time_length year years ym ymd my

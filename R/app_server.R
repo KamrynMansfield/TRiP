@@ -37,6 +37,8 @@
 #' @export
 app_server <- function(input, output, session){
 
+
+
   # showNotification("Checking Census website",
   #                  type = "message",
   #                  duration = 5)
@@ -63,7 +65,7 @@ app_server <- function(input, output, session){
   # }
 
 
-  census_works <- TRUE
+  census_works <- census_api_up()
 
   # getting the max acs year available to be used in later functions.
   # defaults to 2024 if for some reason it cannot connect to the api
@@ -196,6 +198,12 @@ app_server <- function(input, output, session){
   # acs data reactive value that is mainly updated in step 3
   acs_data <- reactiveVal(NULL)
 
+  # a variable to make sure the data is ok to be used in the models
+  good_data <- reactiveVal(TRUE)
+
+  # a variable to let the code know whether someone skipped the census retrieval
+  skipped <- reactiveVal(NULL)
+
   # Read and modify the uploaded data
   # Parses the uploaded .xlsx. Route IDs are coerced to numeric when they
   # convert cleanly, purely so routes sort in a sensible order (2 before 10)
@@ -254,6 +262,8 @@ app_server <- function(input, output, session){
         df <- df |>
           arrange(route_id)
       }
+
+      return(df)
     } else{
       showModal(
         modalDialog(
@@ -262,10 +272,10 @@ app_server <- function(input, output, session){
           "File must be an excel file (.xlsx) or a comma separated file (.csv)"
         )
       )
+      good_data(FALSE)
       return(NULL)
     }
 
-    return(df)
   })
 
 
@@ -379,9 +389,10 @@ app_server <- function(input, output, session){
         modalDialog(
           title = "ERROR",
           easy_close = TRUE,
-          "It appears you are missing or have incorrectly spelled some of the required columns (route_id, month, year, upt, vrm). You also have some extra columns that can't be converted to numbers. Any extra columns in the data must be numeric. You also have some unacceptable column names that suggest logarithmic values. The modeling process will take the logarithm of any added variables, so please put original values in any extra columns you add."
+          "It appears you are missing or have incorrectly spelled some of the required columns (route_id, month, year, upt, vrm). You also have some columns that can't be converted to numbers. Any columns (apart from route_id) in the data must be numeric. You also have some unacceptable column names that suggest logarithmic values. The modeling process will take the logarithm of any added variables, so please put original values in any columns you add."
         )
       )
+      good_data(FALSE)
       output$rider_data_next_placeholder <- renderUI({
         em("*Upload a compatible file to continue")
       })
@@ -390,9 +401,10 @@ app_server <- function(input, output, session){
         modalDialog(
           title = "ERROR",
           easy_close = TRUE,
-          "It appears you are missing or have incorrectly spelled some of the required columns (route_id, month, year, upt, vrm). You also have some unacceptable column names that suggest logarithmic values. The modeling process will take the logarithm of any added variables, so please put original values in any extra columns you add."
+          "It appears you are missing or have incorrectly spelled some of the required columns (route_id, month, year, upt, vrm). You also have some unacceptable column names that suggest logarithmic values. The modeling process will take the logarithm of any added variables, so please put original values in any columns you add."
         )
       )
+      good_data(FALSE)
       output$rider_data_next_placeholder <- renderUI({
         em("*Upload a compatible file to continue")
       })
@@ -401,9 +413,10 @@ app_server <- function(input, output, session){
         modalDialog(
           title = "ERROR",
           easy_close = TRUE,
-          "You have some extra columns that can't be converted to numbers. Any extra columns in the data must be numeric. You also have some unacceptable column names that suggest logarithmic values. The modeling process will take the logarithm of any added variables, so please put original values in any extra columns you add."
+          "You have some columns that can't be converted to numbers. Any columns (apart from route_id) in the data must be numeric. You also have some unacceptable column names that suggest logarithmic values. The modeling process will take the logarithm of any added variables, so please put original values in any columns you add."
         )
       )
+      good_data(FALSE)
       output$rider_data_next_placeholder <- renderUI({
         em("*Upload a compatible file to continue")
       })
@@ -412,9 +425,10 @@ app_server <- function(input, output, session){
         modalDialog(
           title = "ERROR",
           easy_close = TRUE,
-          "It appears you are missing or have incorrectly spelled some of the required columns (route_id, month, year, upt, vrm). Additionally, you have some extra columns that can't be converted to numbers. Any extra columns in the data must be numeric."
+          "It appears you are missing or have incorrectly spelled some of the required columns (route_id, month, year, upt, vrm). Additionally, you have some columns that can't be converted to numbers. Any columns (apart from route_id) in the data must be numeric."
         )
       )
+      good_data(FALSE)
       output$rider_data_next_placeholder <- renderUI({
         em("*Upload a compatible file to continue")
       })
@@ -426,6 +440,7 @@ app_server <- function(input, output, session){
           "It appears you are missing or have incorrectly spelled some of the required columns (route_id, month, year, upt, vrm)."
         )
       )
+      good_data(FALSE)
       output$rider_data_next_placeholder <- renderUI({
         em("*Upload a compatible file to continue")
       })
@@ -434,9 +449,10 @@ app_server <- function(input, output, session){
         modalDialog(
           title = "ERROR",
           easy_close = TRUE,
-          "You have some unacceptable column names that suggest logarithmic values. The modeling process will take the logarithm of any added variables, so please put original values in any extra columns you add."
+          "You have some unacceptable column names that suggest logarithmic values. The modeling process will take the logarithm of any added variables, so please put original values in any columns you add."
         )
       )
+      good_data(FALSE)
       output$rider_data_next_placeholder <- renderUI({
         em("*Upload a compatible file to continue")
       })
@@ -445,9 +461,10 @@ app_server <- function(input, output, session){
         modalDialog(
           title = "ERROR",
           easy_close = TRUE,
-          "You have some extra columns that can't be converted to numbers. Any extra columns in the data must be numeric."
+          "You have some columns that can't be converted to numbers. Any columns (apart from route_id) in the data must be numeric."
         )
       )
+      good_data(FALSE)
       output$rider_data_next_placeholder <- renderUI({
         em("*Upload a compatible file to continue")
       })
@@ -457,6 +474,7 @@ app_server <- function(input, output, session){
       #                  type = "message",
       #                  duration = 1)
 
+      good_data(TRUE)
       output$rider_data_next_placeholder <- renderUI({
         input_task_button("rider_data_next", "Continue")
       })
@@ -465,6 +483,7 @@ app_server <- function(input, output, session){
       showNotification("ERROR: There was an unknown error with your file. Please double check to make sure it follows the correct formatting.",
                        type = "error",
                        duration = 15)
+      good_data(FALSE)
       output$rider_data_next_placeholder <- renderUI({
         em("*Upload a compatible file to continue")
       })
@@ -475,7 +494,6 @@ app_server <- function(input, output, session){
 
 
 
-  # TODO: add a warning if the months are greater than 12
   # send some warning messages if the dates dont work
   observe({
     req(processed_data())
@@ -530,9 +548,10 @@ app_server <- function(input, output, session){
         modalDialog(
           title = "ERROR",
           easy_close = TRUE,
-          "It appears your data has some missing years. If that was not your intention, you may be missing some data."
+          "It appears your data has some years that haven't happened yet. Years must reference past dates."
         )
       )
+      good_data(FALSE)
       output$rider_data_next_placeholder <- renderUI({
         em("*Upload a compatible file to continue")
       })
@@ -546,6 +565,25 @@ app_server <- function(input, output, session){
           "Your data goes further back than the available census data. Please remove any data from before 2009."
         )
       )
+      good_data(FALSE)
+      output$rider_data_next_placeholder <- renderUI({
+        em("*Upload a compatible file to continue")
+      })
+    }
+
+    data_months <- unique(df$month)
+    months_bad <- !all(data_months[!is.na(data_months)] %in% c(1:12))
+
+    if (months_bad){
+      showModal(
+        modalDialog(
+          title = "ERROR",
+          easy_close = TRUE,
+          "It appears your month colum has some values outside the appropriate range.
+          Month values must only be from 1 to 12."
+        )
+      )
+      good_data(FALSE)
       output$rider_data_next_placeholder <- renderUI({
         em("*Upload a compatible file to continue")
       })
@@ -560,18 +598,10 @@ app_server <- function(input, output, session){
     bindEvent(input$rider_data_next)
 
 
-  # TODO
-  # I have kind of done this, but I think I need a better way of checking
-  # from the beginning to see if the ridership data matches the gtfs data
-  # maybe like this
-  #   - is their already acs data uploaded?
-  #   - if yes, does it match the ridership data?
-  #       - propper years
-  #       - propper route_id
-  #       - (warnings would be given for missing data saying they must skip or redo census retrieval)
-
-  # TODO: If new data is input, there are some things I need to do
+  # If new data is input, there are some things I need to do
   observeEvent(processed_data(), {
+
+    req(good_data() == TRUE)
 
     # clear the scenario df
     saved$by_route <- NULL
@@ -1167,7 +1197,7 @@ app_server <- function(input, output, session){
     bslib::nav_select("main_nav", "pan_4")
   })
 
-  skipped <- reactiveVal(NULL)
+
 
   # move on to the next page
   observeEvent(input$skip_gtfs, {
@@ -1185,8 +1215,8 @@ app_server <- function(input, output, session){
   # move on to the next page
   observeEvent(input$confirm_skip, {
     removeModal()
-    skipped(TRUE)
     acs_data(NULL)
+    skipped(TRUE)
     bslib::nav_select("main_nav", "pan_4")
   })
 
@@ -1497,6 +1527,15 @@ app_server <- function(input, output, session){
                    )
                  }
 
+                 if(good_data() == FALSE){
+                   showNotification(
+                     paste("Please upload properly formatted ridership data first"),
+                     type = "message",
+                     duration = 2
+                   )
+                 }
+
+                 req(good_data() == TRUE)
                  req(input$upload_data$datapath)
 
                  mod <- create_regression_model_forced(data_xlsx = processed_data(),
@@ -1822,8 +1861,11 @@ app_server <- function(input, output, session){
       choices <- choices[!choices %in% "fares"]
     }
 
+    # Note that the BRT coefficient is not an elasticity because BRT is a dummy variable.
+    # This 0.26 value equates to a 30% increase in ridership which is
+    # consistent with the literature
     if (input$brt_question == "yes"){
-      choices <- c(choices, "BRT (0.3)" = "brt")
+      choices <- c(choices, "BRT (0.26)" = "brt")
     } else{
       choices <- choices[!choices %in% "brt"]
     }
@@ -1856,7 +1898,7 @@ app_server <- function(input, output, session){
       updated_coefs <- input$forced_coef_checkbox
       # updated_coefs <- c("vrm","gas","fares")
 
-      new_coefs <- c(vrm = .45, gas = .15, fares = -0.3, brt = -0.3)
+      new_coefs <- c(vrm = .45, gas = .15, fares = -0.3, brt = 0.26)
       new_coefs <- new_coefs[names(new_coefs) %in% updated_coefs]
 
       coefs_og <- coef(selected_model())

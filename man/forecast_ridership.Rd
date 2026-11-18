@@ -64,21 +64,4 @@ factors: one per elasticity variable, one for the linear time trend, one for
 the quadratic trend, one for monthly seasonality, and one for any BRT
 conversion.
 }
-\section{Argument mismatches worth checking}{
-
-Same two issues flagged in \code{\link[=create_regression_model_forced]{create_regression_model_forced()}}:
-\code{app_server()} calls this with \code{gas_data = gas} while the formal here is
-\code{gas_data} (an "unused argument" error), and the call to
-\code{make_model_data_frame()} below passes five arguments to a four-argument
-function by adding \code{brt_df}. Flagged rather than fixed.
-}
-
-\section{BRT coefficient naming}{
-
-The BRT coefficient is looked up as \code{"brt"} here, but because \code{brt} is a
-logical column the model reports it as \code{"brtTRUE"} (which is the name
-\code{\link[=check_coefficients]{check_coefficients()}} uses). If the BRT factor ever comes back as exactly 1
-when it shouldn't, this naming mismatch is the first place to look.
-}
-
 \keyword{internal}
