@@ -48,6 +48,9 @@ make_model_data_frame <- function(data_xlsx,
   # load in upt and vrm data
   data <- data_xlsx
 
+  # load in gas_prices data
+  gas <- gas_data
+
   min_year <- min(data$year) # baseline year for the centered time trend
 
   # create a data frame with a time column showing the months from the first month in dataset
@@ -79,9 +82,6 @@ make_model_data_frame <- function(data_xlsx,
     # load in preprocessed monthly American Community Survey data
     acs <- acs_data
 
-    # load in gas_prices data
-    gas <- gas_data
-
     # create month and year column for ACS
     # (ACS arrives with a date column; split it so it joins on the same keys)
     acs <- acs %>%
@@ -108,9 +108,15 @@ make_model_data_frame <- function(data_xlsx,
     }
 
   } else{
-    df_all <- df
+    # combine gas prices (if they exist) upt and vrm
+    if(is.null(gas)){
+      df_all <- df
+    } else{
+      df_all <- df %>%
+        left_join(gas, by = c("month", "year")) %>%
+        mutate(month = factor(month)) # factor so it enters the model as seasonality dummies
+    }
   }
-
 
   # make upt a weekday average using number of weekdays in the month
   # this removes the sawtooth caused by months having different weekday counts

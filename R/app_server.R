@@ -69,6 +69,8 @@ app_server <- function(input, output, session){
 
   # getting the max acs year available to be used in later functions.
   # defaults to 2024 if for some reason it cannot connect to the api
+  # the default doesn't really matter, because other checks will stop the code app from pulling census data
+  # but some other warning depend on the variable max_acs_year
   if (census_works){
     max_acs_year <- tryCatch(
       {
@@ -85,6 +87,15 @@ app_server <- function(input, output, session){
     )
   } else{
     max_acs_year <- 2024
+    showModal(
+      modalDialog(
+        title = "ERROR",
+        easy_close = TRUE,
+        "Unable to access U.S. Census API. If you wish to continue and make
+        a model without variables from the U.S. Census, you may skip
+        the GTFS upload and census retrieval on step 3."
+      )
+    )
   }
 
   # get the gas api key working
@@ -142,6 +153,20 @@ app_server <- function(input, output, session){
     )
   }) |>
     bindEvent(input$compatibility_button, ignoreInit = TRUE)
+
+# TODO: delete this after I debug
+  observe({
+    cat("printed acs")
+    print(acs_data())
+    cat("printed gas")
+    print(gas())
+    cat("printed processed data")
+    print(processed_data())
+    cat("printed ok_to_run")
+    print(ok_to_run_model())
+  })
+
+
 
   # The continue button is generated rather than static so its label and color
   # can reflect the screening outcome. Either way it advances the user; the
@@ -201,8 +226,11 @@ app_server <- function(input, output, session){
   # a variable to make sure the data is ok to be used in the models
   good_data <- reactiveVal(TRUE)
 
-  # a variable to let the code know whether someone skipped the census retrieval
-  skipped <- reactiveVal(NULL)
+  # a variable to let the code know if it is ok to run the first model
+  ok_to_run_model <- reactiveVal(NULL)
+
+  # gas data reactive value, mirrors acs_data
+  gas <- reactiveVal(NULL)
 
   # Read and modify the uploaded data
   # Parses the uploaded .xlsx. Route IDs are coerced to numeric when they
@@ -469,11 +497,6 @@ app_server <- function(input, output, session){
         em("*Upload a compatible file to continue")
       })
     } else if(check_numeric & check_names){
-      # maybe I should put another notification saying the file looks good
-      # showNotification("File Received and Processed",
-      #                  type = "message",
-      #                  duration = 1)
-
       good_data(TRUE)
       output$rider_data_next_placeholder <- renderUI({
         input_task_button("rider_data_next", "Continue")
@@ -612,8 +635,10 @@ app_server <- function(input, output, session){
     # erase the previously created model.
     model_forced(NULL)
 
-    # make it like they haven't skipped it before
-    skipped(NULL)
+    # make it like they haven't run the model yet
+    ok_to_run_model(NULL)
+
+    gas(NULL)
 
     # make it so users can't select
     updateSelectizeInput(inputId = "variables_forced",
@@ -846,6 +871,17 @@ app_server <- function(input, output, session){
   # test with inherits(route_sf(), "character") before using it.
   route_sf <- reactive({
     req(input$upload_routes) # Ensure a file is uploaded
+
+    if (census_api_up() == FALSE){
+      showModal(
+        modalDialog(
+          title = "ERROR",
+          easy_close = TRUE,
+          "Unable to access Census API. Census data retrieval will not work."
+        )
+      )
+    }
+
     routes <- input$upload_routes$datapath
 
     is_zip <- grepl("\\.zip$", tolower(routes))
@@ -890,30 +926,6 @@ app_server <- function(input, output, session){
     find_overlapping_counties(route_sf())
   })
 
-  # using the counties to get regional gas data
-  gas <- reactive({
-    req(county_sf())
-
-    df <- processed_data()
-    start_year <- min(df$year)
-    start_month <- df$month[df$year == start_year] |>
-      min()
-
-    end_year <- max(df$year)
-    end_month <- df$month[df$year == end_year] |>
-      max()
-
-    reg_code <- get_eia_region_code(county_sf())
-
-    get_gas_data(start_month,
-                 start_year,
-                 end_month,
-                 end_year,
-                 api_key,
-                 region = reg_code,
-                 product = "EPM0")
-  })
-
   # once someone uploads the gtfs,
   # On a successful upload, draw the map and reveal the API key input and the
   # Census pull button. These are rendered here rather than defined statically
@@ -921,19 +933,29 @@ app_server <- function(input, output, session){
   observeEvent(input$upload_routes, {
     req(!inherits(route_sf(), "character"))
 
+
+
     output$route_map <- renderLeaflet({
       make_route_leaflet(route_sf(),county_sf())
     })
 
     output$acs_description <- renderUI({
-      markdown("
-      Your transit routes and the counties they cross are displayed to the right.
-      If these are the routes and counties you expected, you are ready for the next step.
-      Input your census API key to get census data.
-
-      Need an API key? [click here](https://api.census.gov/data/key_signup.html)
-               ")
-
+      tagList(
+        markdown("
+Your transit routes and the counties they cross are displayed to the right.
+If these are the routes and counties you expected, you are ready for the next step.
+Input your census API key to get census data.
+    "),
+        tags$p(
+          "Need an API key? ",
+          tags$a(
+            href = "https://api.census.gov/data/key_signup.html",
+            target = "_blank",
+            rel = "noopener noreferrer",
+            "click here"
+          )
+        )
+      )
     })
 
 
@@ -953,6 +975,37 @@ app_server <- function(input, output, session){
 
   })
 
+
+  observe({
+    # only attempt this once we have ridership data and a valid route/county pull
+    req(processed_data())
+
+    cs <- tryCatch(county_sf(), error = function(e) NULL)
+
+    if (is.null(cs)) {
+      gas(NULL)
+      return()
+    }
+
+    df <- processed_data()
+    start_year <- min(df$year)
+    start_month <- df$month[df$year == start_year] |> min()
+
+    end_year <- max(df$year)
+    end_month <- df$month[df$year == end_year] |> max()
+
+    reg_code <- get_eia_region_code(cs)
+
+    result <- tryCatch(
+      get_gas_data(start_month, start_year, end_month, end_year,
+                   api_key, region = reg_code, product = "EPM0"),
+      error = function(e) NULL
+    )
+
+    gas(result)
+  })
+
+
   # check to make sure it is a good file
   observe({
     req(route_sf())
@@ -967,13 +1020,9 @@ app_server <- function(input, output, session){
         )
       )
 
-    } else{
-
     }
-
   }) |>
     bindEvent(input$upload_routes)
-
 
   # --- Census retrieval -----------------------------------------------------
   # The longest-running step in the app. Validates the API key, checks that the
@@ -993,7 +1042,7 @@ app_server <- function(input, output, session){
     k <- trimws(input$api_key)
     req(nzchar(k))
 
-    # validate with a cheap call before accepting it
+    # validate api key with a cheap call before accepting it
     test <- tryCatch({
       setTimeLimit(cpu = 10, elapsed = 10, transient = TRUE)
       tidycensus::get_acs(geography = "state", variables = "B01003_001",
@@ -1194,6 +1243,7 @@ app_server <- function(input, output, session){
     # cache the finished ACS data and move the user on to Model Creation
     acs_data(res)  # store result so outputs can use it
 
+    ok_to_run_model(TRUE)
     bslib::nav_select("main_nav", "pan_4")
   })
 
@@ -1216,10 +1266,9 @@ app_server <- function(input, output, session){
   observeEvent(input$confirm_skip, {
     removeModal()
     acs_data(NULL)
-    skipped(TRUE)
+    ok_to_run_model(TRUE)
     bslib::nav_select("main_nav", "pan_4")
   })
-
 
   #### 4. MODEL CREATION ####
   # get first model after user inputs the files
@@ -1229,63 +1278,39 @@ app_server <- function(input, output, session){
   # labels as names.
   first_model <- reactive({ # first model
     req(input$upload_data$datapath)
+    req(ok_to_run_model())
 
-    if (is.null(acs_data())){
-      req(skipped())
-      acs <- NULL
-      vars <- c("[VRM]" = "log_vrm",
-                "[Month]" = "factor(month)",
-                "[Year]" = "year_cent",
-                "[Year Squared]" = "year_cent^2",
-                "[Bus Rapid Transit]" = "brt",
-                "[Adult Base Fare]" = "log_fare",
-                addnl_vars())
-    } else if (is.null(gas())){
-      acs <- acs_data()
-      vars <- c("[VRM]" = "log_vrm",
-                "[Month]" = "factor(month)",
-                "[Year]" = "year_cent",
-                "[Year Squared]" = "year_cent^2",
-                "[Total Workers]" = "log_workers_16_over",
-                # "[Total Population]" = "log_population", # removed because it is collinear with total_workers
-                "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
-                "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
-                "[% Commuting by Car]" = "log_perc_car",
-                "[% Commuting by Taxi]" = "log_perc_taxicab",
-                "[% Work From Home]" = "log_perc_wfh",
-                "[% Female Workers]" = "log_perc_female",
-                "[% Workers Between 100-150% of Federal Poverty Level]" = "log_fpl_100_150",
-                "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
-                "[Labor Participation Rate]" = "log_labor_part_rate",
-                "[Unemployment Rate]" = "log_unemp_rate",
-                "[Bus Rapid Transit]" = "brt",
-                "[Adult Base Fare]" = "log_fare",
-                addnl_vars())
-    } else{
-      acs <- acs_data()
-      vars <- c("[VRM]" = "log_vrm",
-                "[Month]" = "factor(month)",
-                "[Year]" = "year_cent",
-                "[Year Squared]" = "year_cent^2",
-                # "[Total Population]" = "log_population", # removed because it is collinear with total_workers
-                "[Gas Price]" = "log_gas_price",
-                "[Total Workers]" = "log_workers_16_over",
-                "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
-                "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
-                "[% Commuting by Car]" = "log_perc_car",
-                "[% Commuting by Taxi]" = "log_perc_taxicab",
-                "[% Work From Home]" = "log_perc_wfh",
-                "[% Female Workers]" = "log_perc_female",
-                "[% Workers Between 100-150% of Federal Poverty Level]" = "log_fpl_100_150",
-                "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
-                "[Labor Participation Rate]" = "log_labor_part_rate",
-                "[Unemployment Rate]" = "log_unemp_rate",
-                "[Bus Rapid Transit]" = "brt",
-                "[Adult Base Fare]" = "log_fare",
-                addnl_vars())
+    acs <- NULL
+    vars <- c("[VRM]" = "log_vrm",
+              "[Month]" = "factor(month)",
+              "[Year]" = "year_cent",
+              "[Year Squared]" = "year_cent^2",
+              "[Bus Rapid Transit]" = "brt",
+              "[Adult Base Fare]" = "log_fare")
+
+    if (!is.null(gas())){
+      vars <- c(vars,
+                "[Gas Price]" = "log_gas_price")
     }
 
-    # acs <- acs_data
+    if (!is.null(acs_data())){
+      acs <- acs_data()
+      vars <- c(vars,
+                "[Total Workers]" = "log_workers_16_over",
+                "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
+                "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
+                "[% Commuting by Car]" = "log_perc_car",
+                "[% Commuting by Taxi]" = "log_perc_taxicab",
+                "[% Work From Home]" = "log_perc_wfh",
+                "[% Female Workers]" = "log_perc_female",
+                "[% Workers Between 100-150% of Federal Poverty Level]" = "log_fpl_100_150",
+                "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
+                "[Labor Participation Rate]" = "log_labor_part_rate",
+                "[Unemployment Rate]" = "log_unemp_rate")
+    }
+
+    vars <- c(vars, addnl_vars())
+
     xl_data <- processed_data()
     fare_tbl <- fare_tbl()
     gas <- gas()
@@ -1417,53 +1442,34 @@ app_server <- function(input, output, session){
                {
                  variables_used <- names(first_model()$coefficients) #first model
 
-                 if (is.null(acs_data())){
-                   all_vars <- c("[VRM]" = "log_vrm",
-                                 "[Month]" = "factor(month)",
-                                 "[Year]" = "year_cent",
-                                 "[Year Squared]" = "year_cent^2",
-                                 "[Bus Rapid Transit]" = "brt",
-                                 addnl_vars())
-                 } else if (is.null(gas())){
-                   all_vars <- c("[VRM]" = "log_vrm",
-                                 "[Month]" = "factor(month)",
-                                 "[Year]" = "year_cent",
-                                 "[Year Squared]" = "year_cent^2",
-                                 "[Total Workers]" = "log_workers_16_over",
-                                 # "[Total Population]" = "log_population", # removed because it is collinear with total_workers
-                                 "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
-                                 "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
-                                 "[% Commuting by Car]" = "log_perc_car",
-                                 "[% Commuting by Taxi]" = "log_perc_taxicab",
-                                 "[% Work From Home]" = "log_perc_wfh",
-                                 "[% Female Workers]" = "log_perc_female",
-                                 "[% Workers Between 100-150% of Federal Poverty Level]" = "log_fpl_100_150",
-                                 "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
-                                 "[Labor Participation Rate]" = "log_labor_part_rate",
-                                 "[Unemployment Rate]" = "log_unemp_rate",
-                                 "[Bus Rapid Transit]" = "brt",
-                                 addnl_vars())
-                 } else{
-                   all_vars <- c("[VRM]" = "log_vrm",
-                                 "[Month]" = "factor(month)",
-                                 "[Year]" = "year_cent",
-                                 "[Year Squared]" = "year_cent^2",
-                                 "[Gas Price]" = "log_gas_price",
-                                 "[Total Workers]" = "log_workers_16_over",
-                                 # "[Total Population]" = "log_population", # removed because it is collinear with total_workers
-                                 "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
-                                 "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
-                                 "[% Commuting by Car]" = "log_perc_car",
-                                 "[% Commuting by Taxi]" = "log_perc_taxicab",
-                                 "[% Work From Home]" = "log_perc_wfh",
-                                 "[% Female Workers]" = "log_perc_female",
-                                 "[% Workers Between 100-150% of Federal Poverty Level]" = "log_fpl_100_150",
-                                 "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
-                                 "[Labor Participation Rate]" = "log_labor_part_rate",
-                                 "[Unemployment Rate]" = "log_unemp_rate",
-                                 "[Bus Rapid Transit]" = "brt",
-                                 addnl_vars())
+                 all_vars <- c("[VRM]" = "log_vrm",
+                           "[Month]" = "factor(month)",
+                           "[Year]" = "year_cent",
+                           "[Year Squared]" = "year_cent^2",
+                           "[Bus Rapid Transit]" = "brt",
+                           "[Adult Base Fare]" = "log_fare")
+
+                 if (!is.null(gas())){
+                   all_vars <- c(all_vars,
+                             "[Gas Price]" = "log_gas_price")
                  }
+
+                 if (!is.null(acs_data())){
+                   all_vars <- c(all_vars,
+                             "[Total Workers]" = "log_workers_16_over",
+                             "[% No Vehicle Households]" = "log_perc_hshlds_noveh",
+                             "[% Workers Below Federal Poverty Line]" = "log_below_fpl",
+                             "[% Commuting by Car]" = "log_perc_car",
+                             "[% Commuting by Taxi]" = "log_perc_taxicab",
+                             "[% Work From Home]" = "log_perc_wfh",
+                             "[% Female Workers]" = "log_perc_female",
+                             "[% Workers Between 100-150% of Federal Poverty Level]" = "log_fpl_100_150",
+                             "[% Workers in Renter Occupied Housing Units]" = "log_perc_renter_occupied",
+                             "[Labor Participation Rate]" = "log_labor_part_rate",
+                             "[Unemployment Rate]" = "log_unemp_rate")
+                 }
+
+                 all_vars <- c(all_vars, addnl_vars())
 
                  if (!is.null(fare_tbl())){
                    all_vars <- c(all_vars, "[Adult Base Fare]" = "log_fare")
@@ -1843,7 +1849,7 @@ app_server <- function(input, output, session){
   # Builds the list of literature elasticities the user may substitute for
   # their own estimates. VRM is always offered; gas, fares, and BRT appear only
   # when relevant to the chosen model or the user's stated plans.
-  foreced_coef_choices <- reactive({
+  forced_coef_choices <- reactive({
     req(input$brt_question)
     req(input$fare_question)
     req(selected_model())
@@ -1874,11 +1880,41 @@ app_server <- function(input, output, session){
 
   })
 
+  # Builds the list of literature elasticities the user may substitute for
+  # their own estimates. VRM is always offered; gas, fares, and BRT appear only
+  # when relevant to the chosen model or the user's stated plans.
+  forced_coef_selected <- reactive({
+    req(input$brt_question)
+    req(input$fare_question)
+    req(selected_model())
+
+    coefs <- coef(selected_model())
+
+    selected <- NULL
+
+    if ("log_fare" %in% names(coefs) & input$fare_question == "yes"){
+      selected <- selected
+    } else if (input$fare_question == "yes"){
+      selected <- c(selected, "fares")
+    }
+
+    # Note that the BRT coefficient is not an elasticity because BRT is a dummy variable.
+    # This 0.26 value equates to a 30% increase in ridership which is
+    # consistent with the literature
+    if (input$brt_question == "yes"){
+      selected <- c(selected, "brt")
+    }
+
+    selected |> as.list()
+
+  })
+
   output$forced_coef_placeholder <- renderUI({
     checkboxGroupInput(
       inputId = "forced_coef_checkbox",
       label = "Common Coefficient Values",
-      choices = foreced_coef_choices()
+      choices = forced_coef_choices(),
+      selected = forced_coef_selected()
     )
   })
 

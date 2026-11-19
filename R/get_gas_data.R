@@ -24,6 +24,8 @@ get_gas_data <- function(start_month,
   # check to see if the api can be accessed
   test_url <- "https://api.eia.gov/v2/petroleum/pri/gnd/data/"
 
+  timeout_sec <- 5
+
   resp <- tryCatch(
     GET(test_url,
         query = list(
