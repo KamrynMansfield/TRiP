@@ -12,7 +12,7 @@ census_api_up(timeout_sec = 5)
 
 - timeout_sec:
 
-  the number of seconds until it times out and returns FALSE
+  The number of seconds until it times out and returns FALSE
 
 ## Value
 
