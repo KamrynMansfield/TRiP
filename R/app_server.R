@@ -2143,6 +2143,10 @@ Input your census API key to get census data.
       return()
     }
 
+    output$forecast_run_placeholder <- renderUI({
+      input_task_button("buttonRun","Forecast Ridership")
+    })
+
     # New routes mode: save immediately
     save_routes(routes_to_save)
   })

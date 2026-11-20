@@ -62,7 +62,7 @@
 #'
 #' Plotting and tables
 #' @importFrom ggplot2 aes facet_wrap geom_line geom_sf ggplot ggsave labs
-#' @importFrom ggplot2 theme_bw theme_void
+#' @importFrom ggplot2 theme_bw theme_void scale_x_date
 #' @importFrom viridis viridis
 #' @importFrom leaflet addPolygons addPolylines addProviderTiles colorFactor
 #' @importFrom leaflet highlightOptions labelOptions leaflet leafletOutput

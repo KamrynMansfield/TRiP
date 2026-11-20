@@ -626,7 +626,8 @@ app_ui <- function() {
               selected = "one"
             ),
             # runs the forecast; input_task_button disables itself while busy
-            input_task_button("buttonRun","Forecast Ridership"),
+            uiOutput(outputId = "forecast_run_placeholder"),
+            # input_task_button("buttonRun","Forecast Ridership"),
             "The assumed scenarios for each route will be displayed below.
           Check your estimate values once more before proceeding ",
             actionLink("delete_scenarios", "Clear scenarios and start over"),

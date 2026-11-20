@@ -46,6 +46,7 @@ plot_forecast <- function(forecast_df, route = "all_routes", scale = "average"){
       # one line per scenario: Observed, Low, Medium, High
       geom_line(aes(x = date, y = avg_daily_upt, color = scenario)) +
       theme_bw() +
+      scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
       labs(x = "Date",
            y = "UPT (Average Weekday)",
            color = "Scenario",
@@ -58,6 +59,7 @@ plot_forecast <- function(forecast_df, route = "all_routes", scale = "average"){
       # average weekday UPT multiplied by the number of weekdays in the month
       geom_line(aes(x = date, y = tot_weekday_upt, color = scenario)) +
       theme_bw() +
+      scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
       labs(x = "Date",
            y = "UPT (Total Weekday)",
            color = "Scenario",
