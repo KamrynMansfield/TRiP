@@ -7,7 +7,7 @@
 census_api_up(timeout_sec = 5)
 }
 \arguments{
-\item{timeout_sec}{the number of seconds until it times out and returns FALSE}
+\item{timeout_sec}{The number of seconds until it times out and returns FALSE}
 }
 \value{
 TRUE if the census API is working and FALSE if it is not working
