@@ -216,7 +216,7 @@ app_ui <- function() {
             tags$img(src = "www/dataexample.png",),
             "The uploaded data must match the format shown above.",
             "The column names must match exactly.",
-            "If you have routes classified as Bus Rapid Transit, you may optionally add a brt column.",
+            "If you have routes classified as Bus Rapid Transit (BRT), you may optionally add a brt column.",
             "The values in the route_id column must match the route ID in the GTFS files.",
             "If you have your own variables you would also like to model, you may add columns that contain positive integers. The model
           will transform any added variables using the natural logarithm. Therefore, if you add any variables,
@@ -335,13 +335,13 @@ app_ui <- function() {
 
               ***p-value interpretation:***
 
-              - *(> 0.1): not statistically significant. No asterisk and shaded light yellow.*
+              - *`No asterisk` (Light Yellow) = Not statistically significant.*
 
-              - *(0.1 - 0.05): significant at a 90% confidence level. One asterisk and no shading.*
+              - *`*` (White) = Statistically significant at a 90% confidence level.*
 
-              - *(0.05 - 0.01): significant at a 95% confidence level. Two asterisks and light-green shading.*
+              - *`**` (Light Green) = Statistically significant at a 95% confidence level.*
 
-              - *(< 0.01): significant at a 99% confidence level. Three asterisks and darker-green shading.*
+              - *`***` (Darker Green) = Statistically significant at a 99% confidence level.*
 
               ***Note:*** *To produce the default model, the app creates a large
               model using every variable, and then
@@ -352,13 +352,13 @@ app_ui <- function() {
 
               ***Provided by Agency***
 
-              - *Vehicle Revenue Miles (required in model)*
+              - *`VRM` Vehicle Revenue Miles (required in model)*
 
-              - *Month (required in model)*
+              - *`Month` (required in model)*
 
-              - *Year (required in model)*
+              - *`Year` (required in model)*
 
-              - *BRT Designation (optional)*
+              - *`BRT` Bus Rapid Transit Designation (optional)*
 
               - *Additional variables uploaded by agency (optional)*
 
@@ -571,7 +571,7 @@ app_ui <- function() {
           and the magnitude of the expected annual percent change in each variable.
           For example:
 
-          - *Low Estimate* might represent a scenario with small decreases in VRM and other variables.
+          - *Low Estimate* might represent a scenario with small decreases in Vehicle Revenue Miles (VRM) and other variables.
 
           - *Mid Estimate* might represent a status quo scenario with no changes in VRM and minimal changes in other variables.
 

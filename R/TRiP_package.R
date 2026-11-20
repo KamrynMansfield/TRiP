@@ -70,6 +70,7 @@
 #' @importFrom DT coerceValue dataTableProxy datatable DTOutput formatStyle
 #' @importFrom DT renderDT replaceData
 #' @importFrom gt cell_fill cells_body cols_hide gt gt_output render_gt tab_style
+#' @importFrom gt tab_source_note
 #'
 #' UI layout
 #' @importFrom bslib bs_theme card card_body card_header input_task_button

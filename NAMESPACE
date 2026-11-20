@@ -91,6 +91,7 @@ importFrom(gt,
   gt,
   gt_output,
   render_gt,
+  tab_source_note,
   tab_style
 )
 importFrom(httr,

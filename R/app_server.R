@@ -1425,7 +1425,10 @@ Input your census API key to get census data.
         style = cell_fill(color = "#E6FFF2"),
         locations = cells_body(rows = pval <= .01)
       ) |>
-      cols_hide(columns = pval)
+      cols_hide(columns = pval) |>
+      tab_source_note(source_note = "* p < 0.1") |>
+      tab_source_note(source_note = "** p < 0.05") |>
+      tab_source_note(source_note = "*** p < 0.01")
   })
 
   # Create the proxy handle for the output table
@@ -1633,7 +1636,10 @@ Input your census API key to get census data.
         style = cell_fill(color = "#E6FFF2"),
         locations = cells_body(rows = pval <= .01)
       ) |>
-      cols_hide(columns = pval)
+      cols_hide(columns = pval) |>
+      tab_source_note(source_note = "* p < 0.1") |>
+      tab_source_note(source_note = "** p < 0.05") |>
+      tab_source_note(source_note = "*** p < 0.01")
   })
 
   # Whichever model the user commits to; everything downstream reads this.
@@ -1674,7 +1680,7 @@ Input your census API key to get census data.
   })
 
 
-  ##### BRT CHNAGES CODE #####
+  ##### BRT CHANGES CODE #####
 
 
   # add inputs for a brt change
@@ -1971,24 +1977,24 @@ Input your census API key to get census data.
   # the editable Low/Mid/High scenario table currently on screen
   v <- reactiveValues(data = NULL)
 
-  # NEW: store saved scenarios (all routes)
+  # store saved scenarios (all routes)
   saved <- reactiveValues(by_route = NULL)
 
-  # NEW: for overwrite confirmation workflow
+  # for overwrite confirmation workflow
   pending <- reactiveValues(routes_to_save = NULL, mode = NULL)
 
-  # NEW: your full set of routes (replace routes() with your real source)
+  # your full set of routes (replace routes() with your real source)
   all_routes <- reactive({
     req(routes())     # routes() should return a character vector of route ids/names
     routes()
   })
 
-  # NEW: which routes already have saved scenarios
+  # which routes already have saved scenarios
   saved_routes <- reactive({
     if (is.null(saved$by_route)) character(0) else sort(unique(saved$by_route$Route))
   })
 
-  # NEW: remaining (unsaved) routes
+  # remaining (unsaved) routes
   unsaved_routes <- reactive({
     setdiff(all_routes(), saved_routes())
   })
