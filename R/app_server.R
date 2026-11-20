@@ -2071,10 +2071,15 @@ Input your census API key to get census data.
   observeEvent(input$dtScenarios_cell_edit, {
     info <- input$dtScenarios_cell_edit
 
-    # Extract row and column (DT uses 0-based indexing for columns)
+    # Extract row and column
     i <- info$row
-    j <- info$col # they say i need to have +1, but I don't htink I do
+    j <- info$col
     k <- info$value
+
+    # don't allow users to edit the column with the variable names
+    if (j == 0){
+      return()
+    }
 
     v$data[i, j] <- DT::coerceValue(k, v$data[i, j])
 
@@ -2083,7 +2088,7 @@ Input your census API key to get census data.
 
 
 
-  # NEW: helper that performs the save (overwrites only targeted routes)
+  # helper that performs the save (overwrites only targeted routes)
   # Stamps the current scenario grid onto each target route and merges it into
   # the saved store, replacing any existing rows for those routes.
   save_routes <- function(routes_to_save) {
@@ -2103,7 +2108,7 @@ Input your census API key to get census data.
     }
   }
 
-  # NEW: Save button handler (with confirmation when overwriting)
+  # Save button handler (with confirmation when overwriting)
   # Save handler. Overwriting existing routes requires an explicit confirmation
   # modal; saving to new routes happens immediately.
   observeEvent(input$save_route_scenario, {
@@ -2142,7 +2147,7 @@ Input your census API key to get census data.
     save_routes(routes_to_save)
   })
 
-  # NEW: confirm overwrite
+  # confirm overwrite
   observeEvent(input$confirm_overwrite, {
     removeModal()
     req(pending$routes_to_save)
