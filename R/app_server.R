@@ -985,6 +985,9 @@ Input your census API key to get census data.
     if (is.null(cs)) {
       gas(NULL)
       return()
+    } else if (nrow(cs) == 0){
+      gas(NULL)
+      return()
     }
 
     df <- processed_data()
@@ -1192,7 +1195,7 @@ Input your census API key to get census data.
                               modalDialog(
                                 title = "ERROR",
                                 easy_close = TRUE,
-                                "Unable to retrieve census data.
+                                "Unable to retrieve U.S. census data.
                                 If you are offline or there is a government shutdown, the data is unable to be accessed.
                                 If your computer has no storage space on its hard drive, this could also be the problem.
                                 If you have good internet connection and storage, and if www.census.gov seems to be working properly,
