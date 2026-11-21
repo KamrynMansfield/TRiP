@@ -154,19 +154,6 @@ app_server <- function(input, output, session){
   }) |>
     bindEvent(input$compatibility_button, ignoreInit = TRUE)
 
-# TODO: delete this after I debug
-  observe({
-    cat("printed acs")
-    print(acs_data())
-    cat("printed gas")
-    print(gas())
-    cat("printed processed data")
-    print(processed_data())
-    cat("printed ok_to_run")
-    print(ok_to_run_model())
-  })
-
-
 
   # The continue button is generated rather than static so its label and color
   # can reflect the screening outcome. Either way it advances the user; the
@@ -2198,29 +2185,6 @@ Input your census API key to get census data.
 
     saved_predictions <- saved$by_route
 
-    # TODO: Delete code below
-    # this is me manually creating the saved predictions to test things.
-
-    # saved_predictions <- expand.grid("Route" = routes,
-    #   "Variable" = names(elasticities),
-    #                           "Low.Estimate" = "-1",
-    #                           "Mid.Estimate" = "2%",
-    #                           "High.Estimate" = "5%")
-    #
-    # saved_predictions$Route <- as.character(saved_predictions$Route)
-    # saved_predictions$Variable <- as.character(saved_predictions$Variable)
-    # saved_predictions$Low.Estimate <- as.character(saved_predictions$Low.Estimate)
-    # saved_predictions$Mid.Estimate <- as.character(saved_predictions$Mid.Estimate)
-    # saved_predictions$High.Estimate <- as.character(saved_predictions$High.Estimate)
-    #
-    # which(saved_predictions$Route == 9)
-    # saved_predictions[1,"Low.Estimate"] <- -10
-    # saved_predictions[28,"Low.Estimate"] <- -5
-    # saved_predictions[55,"Low.Estimate"] <- -3
-
-
-    # TODO: Delete code above ^
-
     routes <- routes()
 
     coefs <- final_coefs()
@@ -2245,7 +2209,7 @@ Input your census API key to get census data.
       left_join(grouped_routes, by = join_by(Route))
 
 
-    if (length(unique(saved_predictions$Route)) < length(routes)){ # TODO: I think I should make it so that it will work even if they don't make a prediction for all the routes
+    if (length(unique(saved_predictions$Route)) < length(routes)){
       num_predicted_routes <- length(unique(saved_predictions$Route))
       num_total_routes <- length(routes)
       missing_routes <- paste(routes[!routes %in% unique(saved_predictions$Route)], collapse = ", ")
@@ -2359,7 +2323,6 @@ Input your census API key to get census data.
     routes_as_numeric <- routes_as_numeric |>
       sort()
 
-    # TODO: I haven't tested this yet
     if (length(na_routes) == 1 & "all_routes" %in% na_routes){
       route_choices <- c("all_routes", routes_as_numeric)
     } else{

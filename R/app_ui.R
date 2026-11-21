@@ -317,7 +317,7 @@ app_ui <- function() {
               are those belonging to the default model.
               You may click the selection pane to update which variables you want to test in the model.
               Note that VRM, Month, and Year variables are required to be selected.
-              Once you have selected variables you want to see in the model, click the Create New Model Button.
+              Once you have selected variables you want to see in the model, click the Create Alternative Model Button.
 
               **Compare Models:** The most recent model you created will be
               displayed next to the default model so you can compare your new model with
@@ -362,7 +362,7 @@ app_ui <- function() {
 
               - *Additional variables uploaded by agency (optional)*
 
-              ***Retrieved from Census***
+              ***Provided in the App***
 
               - *Gas price at the regional level (US Energy Information Administration)*
 
@@ -408,7 +408,7 @@ app_ui <- function() {
                 ),
                 div(
                   style = "display:flex; gap:.5rem; flex-wrap:wrap;",
-                  input_task_button("run_model_forced", "Create New Model")
+                  input_task_button("run_model_forced", "Create Alternative Model")
                 )
               )
             ),
